@@ -21,7 +21,7 @@
  * 2、普通表单
  *
  * <?\crazydb\ueditor\UEditor::widget([
- * 'name'=>$name,
+ * 'name' => $name,
  * 'value' => $value,
  * ])>
  */

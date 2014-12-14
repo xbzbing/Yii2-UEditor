@@ -66,7 +66,7 @@ or
 
 ```
 <?\crazydb\ueditor\UEditor::widget([
-    'name'=>$name,
+    'name' => $name,
     'value' => $value,
 ])>
 ```

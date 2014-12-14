@@ -2,6 +2,8 @@ Yii2-UEditor-Extension
 ======================
 Yii2的百度UEditor扩展
 
+网速太烂-，-还未正式发布，请稍等。。。
+
 Installation
 ------------
 
@@ -68,3 +70,7 @@ or
     'value' => $value,
 ])>
 ```
+
+Links
+-----
+@see https://github.com/fex-team/ueditor

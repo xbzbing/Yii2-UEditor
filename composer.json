@@ -3,7 +3,7 @@
     "description": "Yii2的百度UEditor扩展",
     "type": "yii2-extension",
     "keywords": ["yii2","ueditor"],
-    "license": "BSD-4-Clause",
+    "license": "MIT",
     "authors": [
         {
             "name": "疯狂的dabing",

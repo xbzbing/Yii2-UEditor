@@ -2,7 +2,9 @@ Yii2-UEditor-Extension
 ======================
 Yii2的百度UEditor扩展
 
-网速太烂-，-还未正式发布，请稍等。。。
+
+由于bower上的包是纯源码，需要用grunt打包后才能使用，因此扩展自带了1.4.3版本的UEditor资源包。
+
 
 Installation
 ------------
@@ -45,7 +47,7 @@ Once the extension is installed, simply use it in your code by  :
 
 2. In the view:
 
-1) With ActiveRecord
+1) For ActiveRecord
 
 
 ```
@@ -61,7 +63,7 @@ or
 <?=$form->field($model, 'content')->widget(UEditor::className())?>
 ```
 
-2) In Normal Form
+2) For normal form
 
 
 ```

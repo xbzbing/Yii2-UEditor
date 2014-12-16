@@ -62,9 +62,6 @@ class UEditor extends yii\widgets\InputWidget
 
         parent::init();
 
-        Yii::setAlias('crazydb', '@app/extensions/crazydb');
-        Yii::setAlias('@crazydb/ueditor', '@crazydb/yii2-ueditor-ext');
-
         //注册资源文件
         $asset = UEditorAsset::register($this->getView());
 

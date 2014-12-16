@@ -26,7 +26,7 @@ class UEditorAsset extends AssetBundle {
 	 *
 	 * @var
 	 */
-	public $sourcePath = '@vendor/ueditor';
+	public $sourcePath = '@vendor/fex-team/ueditor';
 
 	/**
 	 * UEditor加载需要的JS文件。

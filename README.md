@@ -69,7 +69,7 @@ or
 <?=\crazydb\ueditor\UEditor::widget([
     'name' => $name,
     'value' => $value,
-])>
+])?>
 ```
 
 Links

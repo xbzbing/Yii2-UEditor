@@ -32,7 +32,7 @@ Usage
 Once the extension is installed, simply use it in your code by  :
 
 
-1. Config controllerMap as the follow.
+###1. Config controllerMap as the follow.
 
 
 ```
@@ -43,33 +43,70 @@ Once the extension is installed, simply use it in your code by  :
     ],
 ```
 
+Detailed configuration:
 
-2. In the view:
+```
+    'controllerMap' => [
+        'ueditor' => [
+            'class' => 'crazydb\ueditor\UEditorController',
+            'thumbnail' => null,//If 'thumbnail' is set to null or false, UEditorWidget will NOT create any thumbnails.
+            'config' => [
+                //server config @see http://fex-team.github.io/ueditor/#server-config
+                'imagePathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'scrawlPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'snapscreenPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'catcherPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'videoPathFormat' => '/upload/video/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'filePathFormat' => '/upload/file/{yyyy}{mm}{dd}/{rand:4}_{filename}',
+                'imageManagerListPath' => '/upload/image/',
+                'fileManagerListPath' => '/upload/file/',
+            ]
+        ]
+    ],
+```
+
+You can extend UEditorController to do more changes.
+
+###2. In the view:
 
 1) For ActiveRecord
 
 
 ```
-<?=\crazydb\ueditor\UEditor::widget([
+<?= \crazydb\ueditor\UEditor::widget([
     'model' => $model,
     'attribute' => 'content',
-])?>
+]) ?>
+```
+
+Detailed configuration:
+
+```
+<?= \crazydb\ueditor\UEditor::widget([
+    'model' => $model,
+    'attribute' => 'content',
+    'config' => [
+        //client config @see http://fex-team.github.io/ueditor/#start-config
+        'serverUrl' => ['/ueditor'],//Ensure that the 'serverUrl' can match the 'controllerMap' configuration.
+        'lang' => 'zh-cn'
+    ]
+]) ?>
 ```
 
 or
 
 ```
-<?=$form->field($model, 'content')->widget(crazydb\ueditor\UEditor::className())?>
+<?= $form->field($model, 'content')->widget(\crazydb\ueditor\UEditor::className()) ?>
 ```
 
 2) For normal form
 
 
 ```
-<?=\crazydb\ueditor\UEditor::widget([
+<?= \crazydb\ueditor\UEditor::widget([
     'name' => $name,
     'value' => $value,
-])?>
+]) ?>
 ```
 
 Links

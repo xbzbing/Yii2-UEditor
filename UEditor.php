@@ -79,7 +79,7 @@ class UEditor extends yii\widgets\InputWidget
             $this->config['serverUrl'] = Url::to($this->config['serverUrl']);
 
         if (empty($this->config['lang']))
-            $this->config['lang'] = strtolower(Yii::$app->language);
+            $this->config['lang'] = 'zh-cn';
 
         if (empty($this->config['initialFrameHeight']))
             $this->config['initialFrameHeight'] = 400;

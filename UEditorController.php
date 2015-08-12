@@ -5,14 +5,14 @@
  * @link www.crazydb.com
  *
  * UEditor版本v1.4.3
- * Yii版本2.0
+ * Yii版本2.0+
  */
 namespace crazydb\ueditor;
 
 use yii;
 use yii\imagine\Image;
-use yii\helpers\Json;
 use yii\web\Controller;
+use yii\web\Response;
 
 /**
  * Class UEditorController
@@ -76,17 +76,6 @@ class UEditorController extends Controller
         //csrf基于post验证，UEditor无法添加自定义post数据，同时由于这里不会产生安全问题，故简单粗暴地取消csrf验证。
         //如需csrf防御，可以使用server_param方法，然后在这里将get的crsf添加到post的数组中。。。
         Yii::$app->request->enableCsrfValidation = false;
-        header('Content-Type: text/html; charset=utf-8');
-        //权限判断
-        //这里仅判断是否登录
-        //更多的权限判断需自行扩展，可以继承 UEditorController 并做自己的验证。
-        //当客户使用低版本IE时，会使用swf上传插件，维持认证状态可以参考文档UEditor「自定义请求参数」部分。
-        //http://fex.baidu.com/ueditor/#server-server_param
-        //请求config（配置信息）不需要登录权限
-        $action = Yii::$app->request->get('action');
-
-        if ($action != 'config' && Yii::$app->user->isGuest)
-            $this->show(['url'=>null,'fileType'=>null,'original'=>null,'state'=>'Failed:[需要登录]没有上传权限！']);
 
         //保留UE默认的配置引入方式
         $CONFIG = json_decode(preg_replace("/\/\*[\s\S]+?\*\//", '', file_get_contents(__DIR__ . '/config.json')), true);
@@ -130,9 +119,9 @@ class UEditorController extends Controller
         ];
 
         if (isset($actions[$action]))
-            $this->run($actions[$action]);
+            return $this->run($actions[$action]);
         else
-            $this->show(['state' => '请求地址出错']);
+            return $this->show(['state' => '请求地址出错']);
     }
 
     /**
@@ -140,7 +129,7 @@ class UEditorController extends Controller
      */
     public function actionConfig()
     {
-        $this->show($this->config);
+        return $this->show($this->config);
     }
 
     /**
@@ -154,7 +143,7 @@ class UEditorController extends Controller
             "allowFiles" => $this->config['imageAllowFiles']
         ];
         $fieldName = $this->config['imageFieldName'];
-        $this->upload($fieldName, $config);
+        return $this->upload($fieldName, $config);
     }
 
     /**
@@ -169,7 +158,7 @@ class UEditorController extends Controller
             "oriName" => "scrawl.png"
         ];
         $fieldName = $this->config['scrawlFieldName'];
-        $this->upload($fieldName, $config, 'base64');
+        return $this->upload($fieldName, $config, 'base64');
     }
 
     /**
@@ -183,7 +172,7 @@ class UEditorController extends Controller
             "allowFiles" => $this->config['videoAllowFiles']
         ];
         $fieldName = $this->config['videoFieldName'];
-        $this->upload($fieldName, $config);
+        return $this->upload($fieldName, $config);
     }
 
     /**
@@ -197,7 +186,7 @@ class UEditorController extends Controller
             "allowFiles" => $this->config['fileAllowFiles']
         ];
         $fieldName = $this->config['fileFieldName'];
-        $this->upload($fieldName, $config);
+        return $this->upload($fieldName, $config);
     }
 
     /**
@@ -208,7 +197,7 @@ class UEditorController extends Controller
         $allowFiles = $this->config['fileManagerAllowFiles'];
         $listSize = $this->config['fileManagerListSize'];
         $path = $this->config['fileManagerListPath'];
-        $this->manage($allowFiles, $listSize, $path);
+        return $this->manage($allowFiles, $listSize, $path);
     }
 
     /**
@@ -219,7 +208,7 @@ class UEditorController extends Controller
         $allowFiles = $this->config['imageManagerAllowFiles'];
         $listSize = $this->config['imageManagerListSize'];
         $path = $this->config['imageManagerListPath'];
-        $this->manage($allowFiles, $listSize, $path);
+        return $this->manage($allowFiles, $listSize, $path);
     }
 
     /**
@@ -258,7 +247,7 @@ class UEditorController extends Controller
             'state' => count($list) ? 'SUCCESS' : 'ERROR',
             'list' => $list
         ];
-        $this->show($result);
+        return $this->show($result);
     }
 
     /**
@@ -266,6 +255,7 @@ class UEditorController extends Controller
      * @param $fieldName
      * @param $config
      * @param $base64
+     * @return array
      */
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
@@ -278,7 +268,7 @@ class UEditorController extends Controller
         $info['url'] = Yii::$app->request->baseUrl . $info['url'];
         $info['original'] = htmlspecialchars($info['original']);
         $info['width'] = $info['height'] = 500;
-        $this->show($info);
+        return $this->show($info);
     }
 
     /**
@@ -360,6 +350,7 @@ class UEditorController extends Controller
      * @param $allowFiles
      * @param $listSize
      * @param $path
+     * @return array
      */
     protected function manage($allowFiles, $listSize, $path)
     {
@@ -393,7 +384,7 @@ class UEditorController extends Controller
             "start" => $start,
             "total" => count($files),
         ];
-        $this->show($result);
+        return $this->show($result);
     }
 
     /**
@@ -436,16 +427,21 @@ class UEditorController extends Controller
 
     /**
      * 显示最终结果，并终止运行
-     * @param $result
+     * @param array $result
+     * @return array
      */
     protected function show($result)
     {
         $callback = Yii::$app->request->get('callback');
-        $result = Json::encode($result);
-        if ($callback)
-            echo "$callback($result)";
-        else
-            echo $result;
-        Yii::$app->end();
+        if($callback){
+            Yii::$app->response->format = Response::FORMAT_JSONP;
+            return [
+                'callback' => $callback,
+                'data' => $result
+            ];
+        }else{
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            return $result;
+        }
     }
 }

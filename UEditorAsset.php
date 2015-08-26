@@ -6,7 +6,7 @@
  * @link www.crazydb.com
  *
  * UEditor版本v1.4.3
- * Yii版本2.0
+ * Yii版本2.0+
  */
 namespace crazydb\ueditor;
 
@@ -24,7 +24,6 @@ class UEditorAsset extends AssetBundle {
 
     /**
      * UEditor路径
-     *
      * @var
      */
     public $sourcePath;
@@ -32,7 +31,6 @@ class UEditorAsset extends AssetBundle {
     /**
      * UEditor加载需要的JS文件。
      * ueditor.config.js中是默认配置项，不建议直接引入。
-     *
      * @var array
      */
     public $js = [
@@ -45,13 +43,21 @@ class UEditorAsset extends AssetBundle {
      *
      * @var array
      */
-    public $css = [
-    ];
+    public $css = [];
 
+
+    public $publishOptions = [
+        'except' => [
+            'php/',
+            'index.html',
+            '.gitignore'
+        ]
+    ];
 
     public function init() {
         parent::init();
         if($this->sourcePath == null)
             $this->sourcePath = __DIR__ . DIRECTORY_SEPARATOR . 'assets';
     }
+
 }

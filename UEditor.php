@@ -5,24 +5,26 @@
  * @link www.crazydb.com
  *
  * UEditor版本v1.4.3
- * Yii版本2.0
+ * Yii版本2.0+
  *
  * 使用方法:
  * 1、AR
- * <?=\crazydb\ueditor\UEditor::widget([
- * 'model' => $model,
- * 'attribute' => 'content',
- * ])?>
+ *
+ * <?=$form->field($model, 'content')->widget(\crazydb\ueditor\UEditor::className())?>
  *
  * 或者
  *
- * <?=$form->field($model, 'content')->widget(UEditor::className())?>
+ * <?=\crazydb\ueditor\UEditor::widget([
+ *      'model' => $model,
+ *      'attribute' => 'content',
+ * ])?>
+ *
  *
  * 2、普通表单
  *
- * <?\crazydb\ueditor\UEditor::widget([
- * 'name' => $name,
- * 'value' => $value,
+ * <?=\crazydb\ueditor\UEditor::widget([
+ *      'name' => $name,
+ *      'value' => $value,
  * ])>
  */
 namespace crazydb\ueditor;
@@ -52,7 +54,6 @@ class UEditor extends yii\widgets\InputWidget
      */
     public $config = [];
 
-
     /**
      * 初始化一些配置。
      * 由于不引入config.js文件，因此需要手动配置一些东西。
@@ -67,14 +68,14 @@ class UEditor extends yii\widgets\InputWidget
 
         //设置UEditor实例的名字
         if (!$this->name)
-            $this->name = $this->model->formName() . '_' . $this->attribute;
+            $this->name = $this->hasModel() ? $this->model->formName() . '_' . $this->attribute : 'ueditor_' . $this->id;
 
         //常用配置项
         if (empty($this->config['UEDITOR_HOME_URL']))
             $this->config['UEDITOR_HOME_URL'] = $asset->baseUrl . '/';
 
         if (empty($this->config['serverUrl']))
-            $this->config['serverUrl'] = Url::to(['/ueditor']);
+            $this->config['serverUrl'] = Url::to(['/ueditor/index']);
         elseif (is_array($this->config['serverUrl']))
             $this->config['serverUrl'] = Url::to($this->config['serverUrl']);
 
@@ -86,6 +87,9 @@ class UEditor extends yii\widgets\InputWidget
 
         if (empty($this->config['initialFrameWidth']))
             $this->config['initialFrameWidth'] = '100%';
+
+        if (empty($this->config['enableAutoSave']))
+            $this->config['enableAutoSave'] = false;
 
         //扩展默认不直接引入config.js文件，因此需要自定义配置项.
         if (empty($this->config['toolbars'])) {
@@ -143,5 +147,4 @@ UEDITOR;
         else
             return Html::textarea($this->name, $this->value, ['id' => $id]);
     }
-
 }

@@ -4,7 +4,7 @@
  * @author xbzbing<xbzbing@gmail.com>
  * @link www.crazydb.com
  *
- * UEditor版本v1.4.3
+ * UEditor版本v1.4.3.1
  * Yii 版本 2.0+
  */
 namespace crazydb\ueditor;

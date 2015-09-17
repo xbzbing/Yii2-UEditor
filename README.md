@@ -5,6 +5,8 @@ Yii2的百度UEditor扩展
 
 由于bower上的包是纯源码，需要用grunt打包后才能使用，因此扩展自带了1.4.3版本的UEditor资源包。
 
+扩展特点：
+
 1. 支持多实例
 2. 支持缩略图（默认开启 `200x200`）
 3. 支持缩放（默认关闭）
@@ -32,20 +34,26 @@ php composer.phar require --prefer-dist crazydb/yii2-ueditor "*"
 安装完毕后，进行简单的配置即可使用。
 
 
-
-
 ### 后端支持
 
-1. 继承 `crazydb\ueditor\UEditorController` 来实现自己的后端。（推荐）
+1) 继承 `crazydb\ueditor\UEditorController` 来实现自己的后端。（推荐）
 
 ```php
-class Editor extends crazydb\ueditor\UEditorController
+class EditorController extends crazydb\ueditor\UEditorController
 {
     public function init(){
         parent::init();
         //do something
         //这里可以对扩展的访问权限进行控制
     }
+    
+    public function actionConfig(){
+        //do something
+        //这里可以对 config 请求进行自定义响应
+    }
+    
+    // more modify ...
+    // 更多的修改
 }
 ```
 
@@ -53,7 +61,7 @@ class Editor extends crazydb\ueditor\UEditorController
 
 需要注意的是在 View 模板文件中使用扩展的时候需要指定 `serverUrl` 为自己编写的 controller 地址。
 
-2.  通过配置 `controllerMap` 使用默认的后端。
+2)  通过配置 `controllerMap` 使用默认的后端。
 
 修改配置文件，基础模板的配置文件是 `config/web.php`， 高级模板的配置文件是 `config/main.php`。
 

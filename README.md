@@ -140,7 +140,8 @@ class EditorController extends crazydb\ueditor\UEditorController
     'config' => [
         //client config @see http://fex-team.github.io/ueditor/#start-config
         'serverUrl' => ['/ueditor/index'],//确保serverUrl正确指向后端地址
-        'lang' => 'zh-cn'
+        'lang' => 'zh-cn',
+        'iframeCssUrl' => Yii::getAlias('@web') . '/static/css/ueditor.css',// 自定义编辑器内显示效果
     ]
 ]) ?>
 ```
@@ -156,6 +157,11 @@ class EditorController extends crazydb\ueditor\UEditorController
     'value' => $value,
 ]) ?>
 ```
+
+### 其他
+
+编辑器内默认情况下行高为1，大段中文编辑显示效果非常差，但是可以通过设置 `iframeCssUrl` 来修改编辑器内显示效果。
+
 
 相关链接
 -----

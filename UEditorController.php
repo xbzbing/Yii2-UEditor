@@ -65,7 +65,19 @@ class UEditorController extends Controller
      * @var string
      */
     public $defaultAction = 'index';
-
+    
+    /**
+     * 存储根url地址别名
+     * @var string
+     */
+    public $rootUrl;
+    
+    /**
+     * 存储根目录别名
+     * @var string
+     */
+    public $rootPath = '@webroot';
+    
     /**
      * Web根目录
      * @var string
@@ -105,7 +117,8 @@ class UEditorController extends Controller
             'fileManagerListPath' => '/upload/file/',
         ];
         $this->config = $this->config + $default + $CONFIG;
-        $this->webroot = Yii::getAlias('@webroot');
+        $this->webroot = Yii::getAlias($this->rootPath);
+        $this->rootUrl = Yii::getAlias($this->rootUrl);
         if(!is_array($this->thumbnail))
             $this->thumbnail = false;
     }
@@ -248,7 +261,7 @@ class UEditorController extends Controller
             $source = $_GET[$fieldName];
         }
         foreach ($source as $imgUrl) {
-            $item = new Uploader($imgUrl, $config, 'remote');
+            $item = new Uploader($imgUrl, $config, 'remote', $this->rootPath);
             $info = $item->getFileInfo();
             $info['thumbnail'] = $this->imageHandle($info['url']);
             $list[] = [
@@ -273,12 +286,12 @@ class UEditorController extends Controller
      */
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
-        $up = new Uploader($fieldName, $config, $base64);
+        $up = new Uploader($fieldName, $config, $base64, $this->rootPath);
         $info = $up->getFileInfo();
         if ($this->thumbnail && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
-            $info['thumbnail'] = Yii::$app->request->baseUrl . $this->imageHandle($info['url']);
+            $info['thumbnail'] = $this->rootUrl . $this->imageHandle($info['url']);
         }
-        $info['url'] = Yii::$app->request->baseUrl . $info['url'];
+        $info['url'] = $this->rootUrl . $info['url'];
         $info['original'] = htmlspecialchars($info['original']);
         $info['width'] = $info['height'] = 500;
         return $info;
@@ -413,7 +426,7 @@ class UEditorController extends Controller
         if (substr($path, strlen($path) - 1) != '/') $path .= '/';
         $handle = opendir($path);
         //baseUrl用于兼容使用alias的二级目录部署方式
-        $baseUrl = Yii::$app->request->baseUrl;
+        $baseUrl = $this->rootUrl;
         while (false !== ($file = readdir($handle))) {
             if ($file != '.' && $file != '..') {
                 $path2 = $path . $file;

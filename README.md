@@ -79,6 +79,8 @@ class EditorController extends crazydb\ueditor\UEditorController
     'controllerMap' => [
         'ueditor' => [
             'class' => 'crazydb\ueditor\UEditorController',
+            'rootUrl' => '@storageUrl/uploads',
+            'rootPath' => '@storage/web/uploads',
             'thumbnail' => false,//如果将'thumbnail'设置为空，将不生成缩略图。
             'watermark' => [    //默认不生存水印
                 'path' => '', //水印图片路径
@@ -161,8 +163,3 @@ class EditorController extends crazydb\ueditor\UEditorController
 ### 其他
 
 编辑器内默认情况下行高为1，大段中文编辑显示效果非常差，但是可以通过设置 `iframeCssUrl` 来修改编辑器内显示效果。
-
-
-相关链接
------
-@see https://github.com/fex-team/ueditor

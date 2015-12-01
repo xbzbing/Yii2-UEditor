@@ -20,7 +20,7 @@ use yii;
  */
 class Uploader
 {
-    private $basePath;
+    private $rootPath;
     private $fileField; //文件域名
     private $file; //文件上传对象
     private $config; //配置信息
@@ -61,12 +61,12 @@ class Uploader
      * @param array $config 配置项
      * @param string $type 是否解析base64编码，可省略。若开启，则$fileField代表的是base64编码的字符串表单名
      */
-    public function __construct($fileField, $config, $type = "upload", $basePath)
+    public function __construct($fileField, $config, $type = "upload", $rootPath)
     {
         $this->fileField = $fileField;
         $this->config = $config;
         $this->type = $type;
-        $this->basePath = $basePath;
+        $this->rootPath = $rootPath;
         if ($type == "remote") {
             $this->saveRemote();
         } else if($type == "base64") {
@@ -339,7 +339,7 @@ class Uploader
     private function getFilePath()
     {
         $fullname = $this->fullName;
-        $rootPath = Yii::getAlias($this->basePath);
+        $rootPath = Yii::getAlias($this->rootPath);
 
         if (substr($fullname, 0, 1) != '/') {
             $fullname = '/' . $fullname;

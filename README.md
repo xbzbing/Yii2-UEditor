@@ -89,14 +89,14 @@ class EditorController extends crazydb\ueditor\UEditorController
             'zoom' => ['height' => 500, 'width' => 500], //缩放，默认不缩放
             'config' => [
                 //server config @see http://fex-team.github.io/ueditor/#server-config
-                'imagePathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'scrawlPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'snapscreenPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'catcherPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'videoPathFormat' => '/upload/video/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'filePathFormat' => '/upload/file/{yyyy}{mm}{dd}/{rand:4}_{filename}',
-                'imageManagerListPath' => '/upload/image/',
-                'fileManagerListPath' => '/upload/file/',
+                'imagePathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'scrawlPathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'snapscreenPathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'catcherPathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'videoPathFormat' => '/video/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'filePathFormat' => '/file/{yyyy}{mm}{dd}/{rand:4}_{filename}',
+                'imageManagerListPath' => '/image/',
+                'fileManagerListPath' => '/file/',
             ]
         ]
     ],

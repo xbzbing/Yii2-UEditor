@@ -38,10 +38,11 @@ class UEditorController extends Controller
 
     /**
      * 缩略图设置
-     * 默认为200*200，如果设置为空数组则不生成缩略图
+     * 默认不开启
+     * ['height' => 200, 'width' => 200]表示生成200*200的缩略图，如果设置为空数组则不生成缩略图
      * @var array
      */
-    public $thumbnail = ['height' => 200, 'width' => 200];
+    public $thumbnail = [];
 
     /**
      * 图片缩放设置

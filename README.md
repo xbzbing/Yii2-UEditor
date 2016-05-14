@@ -79,6 +79,8 @@ class EditorController extends crazydb\ueditor\UEditorController
     'controllerMap' => [
         'ueditor' => [
             'class' => 'crazydb\ueditor\UEditorController',
+            'rootUrl' => '@storageUrl/uploads',
+            'rootPath' => '@storage/web/uploads',
             'thumbnail' => false,//如果将'thumbnail'设置为空，将不生成缩略图。
             'watermark' => [    //默认不生存水印
                 'path' => '', //水印图片路径
@@ -87,14 +89,14 @@ class EditorController extends crazydb\ueditor\UEditorController
             'zoom' => ['height' => 500, 'width' => 500], //缩放，默认不缩放
             'config' => [
                 //server config @see http://fex-team.github.io/ueditor/#server-config
-                'imagePathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'scrawlPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'snapscreenPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'catcherPathFormat' => '/upload/image/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'videoPathFormat' => '/upload/video/{yyyy}{mm}{dd}/{time}{rand:6}',
-                'filePathFormat' => '/upload/file/{yyyy}{mm}{dd}/{rand:4}_{filename}',
-                'imageManagerListPath' => '/upload/image/',
-                'fileManagerListPath' => '/upload/file/',
+                'imagePathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'scrawlPathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'snapscreenPathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'catcherPathFormat' => '/image/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'videoPathFormat' => '/video/{yyyy}{mm}{dd}/{time}{rand:6}',
+                'filePathFormat' => '/file/{yyyy}{mm}{dd}/{rand:4}_{filename}',
+                'imageManagerListPath' => '/image/',
+                'fileManagerListPath' => '/file/',
             ]
         ]
     ],
@@ -161,8 +163,3 @@ class EditorController extends crazydb\ueditor\UEditorController
 ### 其他
 
 编辑器内默认情况下行高为1，大段中文编辑显示效果非常差，但是可以通过设置 `iframeCssUrl` 来修改编辑器内显示效果。
-
-
-相关链接
------
-@see https://github.com/fex-team/ueditor

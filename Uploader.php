@@ -20,6 +20,11 @@ use yii;
  */
 class Uploader
 {
+    /**
+     * 是否允许采集内网 IP 图片
+     * 默认不允许
+     * @var bool
+     */
     private $allowIntranet = false;
     private $fileField; //文件域名
     private $file; //文件上传对象

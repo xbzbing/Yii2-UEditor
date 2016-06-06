@@ -258,6 +258,8 @@ class UEditorController extends Controller
         }
         foreach ($source as $imgUrl) {
             $item = new Uploader($imgUrl, $config, 'remote');
+            if ($this->allowIntranet)
+                $item->setAllowIntranet(true);
             $info = $item->getFileInfo();
             $info['thumbnail'] = $this->imageHandle($info['url']);
             $list[] = [

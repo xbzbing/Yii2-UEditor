@@ -62,6 +62,14 @@ class UEditorController extends Controller
     public $watermark = [];
 
     /**
+     * 是否允许内网采集
+     * 如果为 false 则远程图片获取不获取内网图片，防止 SSRF。
+     * 默认为 false
+     * @var bool
+     */
+    public $allowIntranet = false;
+
+    /**
      * 默认 action
      * @var string
      */
@@ -107,7 +115,7 @@ class UEditorController extends Controller
         ];
         $this->config = $this->config + $default + $CONFIG;
         $this->webroot = Yii::getAlias('@webroot');
-        if(!is_array($this->thumbnail))
+        if (!is_array($this->thumbnail))
             $this->thumbnail = false;
     }
 
@@ -275,6 +283,10 @@ class UEditorController extends Controller
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
         $up = new Uploader($fieldName, $config, $base64);
+
+        if ($this->allowIntranet)
+            $up->setAllowIntranet(true);
+
         $info = $up->getFileInfo();
         if ($this->thumbnail && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
             $info['thumbnail'] = Yii::$app->request->baseUrl . $this->imageHandle($info['url']);

@@ -20,6 +20,7 @@ use yii;
  */
 class Uploader
 {
+    private $allowIntranet = false;
     private $fileField; //文件域名
     private $file; //文件上传对象
     private $config; //配置信息
@@ -67,11 +68,20 @@ class Uploader
         $this->type = $type;
         if ($type == "remote") {
             $this->saveRemote();
-        } else if($type == "base64") {
+        } else if ($type == "base64") {
             $this->upBase64();
         } else {
             $this->upFile();
         }
+    }
+
+    /**
+     * 设置是否允许获取内网图片
+     * @param boolean $allow
+     */
+    public function setAllowIntranet($allow)
+    {
+        $this->allowIntranet = $allow ? true : false;
     }
 
     /**
@@ -189,7 +199,7 @@ class Uploader
             return;
         }
 
-        preg_match('/(^https*:\/\/[^:\/]+)/', $imgUrl, $matches);
+        preg_match('/(^https?:\/\/[^:\/]+)/', $imgUrl, $matches);
         $host_with_protocol = count($matches) > 1 ? $matches[1] : '';
 
         // 判断是否是合法 url
@@ -198,13 +208,14 @@ class Uploader
             return;
         }
 
-        preg_match('/^https*:\/\/(.+)/', $host_with_protocol, $matches);
+        preg_match('/^https?:\/\/(.+)/', $host_with_protocol, $matches);
         $host_without_protocol = count($matches) > 1 ? $matches[1] : '';
 
-        // 此时提取出来的可能是 ip 也有可能是域名，先获取 ip
+        // 此时提取出来的可能是 IP 也有可能是域名，先获取 IP
         $ip = gethostbyname($host_without_protocol);
-        // 判断是否是私有 ip
-        if(!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE)) {
+
+        // 判断是否允许私有 IP
+        if (!$this->allowIntranet && !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE)) {
             $this->stateInfo = $this->getStateInfo("INVALID_IP");
             return;
         }
@@ -225,16 +236,18 @@ class Uploader
         //打开输出缓冲区并获取远程图片
         ob_start();
         $context = stream_context_create(
-            array('http' => array(
-                'follow_location' => false // don't follow redirects
-            ))
+            [
+                'http' => [
+                    'follow_location' => false // don't follow redirects
+                ]
+            ]
         );
         readfile($imgUrl, false, $context);
         $img = ob_get_contents();
         ob_end_clean();
         preg_match("/[\/]([^\/]*)[\.]?[^\.\/]*$/", $imgUrl, $m);
 
-        $this->oriName = $m ? $m[1]:"";
+        $this->oriName = $m ? $m[1] : "";
 
         $this->fileSize = strlen($img);
         $this->fileType = $this->getFileExt();
@@ -325,7 +338,8 @@ class Uploader
      * 获取文件名
      * @return string
      */
-    private function getFileName () {
+    private function getFileName()
+    {
         return substr($this->filePath, strrpos($this->filePath, '/') + 1);
     }
 

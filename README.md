@@ -8,7 +8,7 @@ Yii2的百度UEditor扩展
 扩展特点：
 
 1. 支持多实例
-2. 支持缩略图（默认开启 `200x200`）
+2. 支持缩略图（默认关闭）
 3. 支持缩放（默认关闭）
 4. 支持水印（默认关闭）
 5. 图片管理加载优化
@@ -161,6 +161,8 @@ class EditorController extends crazydb\ueditor\UEditorController
 ### 其他
 
 编辑器内默认情况下行高为1，大段中文编辑显示效果非常差，但是可以通过设置 `iframeCssUrl` 来修改编辑器内显示效果。
+
+默认不支持内网 IP 图片远程采集，如果部署在内网且需要这个功能,请配置`UEditorController::allowIntranet`为`true`。
 
 
 相关链接

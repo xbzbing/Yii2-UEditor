@@ -82,7 +82,7 @@ class EditorController extends crazydb\ueditor\UEditorController
             'thumbnail' => false,//如果将'thumbnail'设置为空，将不生成缩略图。
             'watermark' => [    //默认不生存水印
                 'path' => '', //水印图片路径
-                'start' => [0, 0] //水印图片位置
+                'position' => 9 //position in [1, 9]，表示从左上到右下的 9 个位置，即如1表示左上，5表示中间，9表示右下。
             ],
             'zoom' => ['height' => 500, 'width' => 500], //缩放，默认不缩放
             'config' => [

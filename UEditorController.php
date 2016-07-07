@@ -55,8 +55,9 @@ class UEditorController extends Controller
     /**
      * 水印设置
      * 参考配置如下：
-     * ['path'=>'水印图片位置','start'=>[0, 0]]
-     * 默认位置为[0, 0]，可不配置
+     * ['path'=>'水印图片位置','position'=>0]
+     * 默认位置为 9，可不配置
+     * position in [1 ,9]，表示从左上到右下的9个位置。
      * @var array
      */
     public $watermark = [];
@@ -290,7 +291,7 @@ class UEditorController extends Controller
             $up->setAllowIntranet(true);
 
         $info = $up->getFileInfo();
-        if ($this->thumbnail && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
+        if (($this->thumbnail or $this->zoom or $this->watermark) && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
             $info['thumbnail'] = Yii::$app->request->baseUrl . $this->imageHandle($info['url']);
         }
         $info['url'] = Yii::$app->request->baseUrl . $info['url'];
@@ -301,39 +302,84 @@ class UEditorController extends Controller
 
     /**
      * 自动处理图片
-     * @param $fullName
+     * @param $file
      * @return mixed|string
      */
-    protected function imageHandle($fullName)
+    protected function imageHandle($file)
     {
-        if (substr($fullName, 0, 1) != '/')
-            $fullName = '/' . $fullName;
+        if (substr($file, 0, 1) != '/')
+            $file = '/' . $file;
 
-        $file = $fullName;
 
         //先处理缩略图
         if ($this->thumbnail && !empty($this->thumbnail['height']) && !empty($this->thumbnail['width'])) {
             $file = pathinfo($file);
             $file = $file['dirname'] . '/' . $file['filename'] . '.thumbnail.' . $file['extension'];
-            Image::thumbnail($this->webroot . $fullName, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
+            Image::thumbnail($this->webroot . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
                 ->save($this->webroot . $file);
         }
         //再处理缩放，默认不缩放
         //...缩放效果非常差劲-，-
         if (isset($this->zoom['height']) && isset($this->zoom['width'])) {
-            $size = $this->getSize($this->webroot . $fullName);
+            $size = $this->getSize($this->webroot . $file);
             if ($size && $size[0] > 0 && $size[1] > 0) {
                 $ratio = min([$this->zoom['height'] / $size[0], $this->zoom['width'] / $size[1], 1]);
-                Image::thumbnail($this->webroot . $fullName, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
-                    ->save($this->webroot . $fullName);
+                Image::thumbnail($this->webroot . $file, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
+                    ->save($this->webroot . $file);
             }
         }
         //最后生成水印
         if (isset($this->watermark['path']) && file_exists($this->watermark['path'])) {
-            if (!isset($this->watermark['start']))
-                $this->watermark['start'] = [0, 0];
-            Image::watermark($file, $this->watermark['path'], $this->watermark['start'])
-                ->save($file);
+            if (!isset($this->watermark['position']) or $this->watermark['position'] > 9 or $this->watermark['position'] < 0 or !is_numeric($this->watermark['position']))
+                $this->watermark['position'] = 9;
+            $size = $this->getSize($this->webroot . $file);
+            $waterSize = $this->getSize($this->watermark['path']);
+            if ($size[0] > $waterSize[0] and $size[1] > $waterSize[1]) {
+                $halfX = $size[0] / 2;
+                $halfY = $size[1] / 2;
+                $halfWaterX = $waterSize[0] / 2;
+                $halfWaterY = $waterSize[1] / 2;
+                switch (intval($this->watermark['position'])) {
+                    case 1:
+                        $x = 0;
+                        $y = 0;
+                        break;
+                    case 2:
+                        $x = $halfX - $halfWaterX;
+                        $y = 0;
+                        break;
+                    case 3:
+                        $x = $size[0] - $waterSize[0];
+                        $y = 0;
+                        break;
+                    case 4:
+                        $x = 0;
+                        $y = $halfY - $halfWaterY;
+                        break;
+                    case 5:
+                        $x = $halfX - $halfWaterX;
+                        $y = $halfY - $halfWaterY;
+                        break;
+                    case 6:
+                        $x = $size[0] - $waterSize[0];
+                        $y = $halfY - $halfWaterY;
+                        break;
+                    case 7:
+                        $x = 0;
+                        $y = $size[1] - $waterSize[1];
+                        break;
+                    case 8:
+                        $x = $halfX - $halfWaterX;
+                        $y = $size[1] - $waterSize[1];
+                        break;
+                    case 9:
+                    default:
+                        $x = $size[0] - $waterSize[0];
+                        $y = $size[1] - $waterSize[1];
+                }
+                Image::watermark($this->webroot . $file, $this->watermark['path'], [$x, $y])
+                    ->save($this->webroot . $file);
+            }
         }
 
         return $file;

@@ -313,8 +313,8 @@ class UEditorController extends Controller
 
         //先处理缩略图
         if ($this->thumbnail && !empty($this->thumbnail['height']) && !empty($this->thumbnail['width'])) {
-            $file = pathinfo($file);
-            $thumbnailFile = $file['dirname'] . '/' . $file['filename'] . '.thumbnail.' . $file['extension'];
+            $file_path = pathinfo($file);
+            $thumbnailFile = $file_path['dirname'] . '/' . $file_path['filename'] . '.thumbnail.' . $file_path['extension'];
             Image::thumbnail($this->webroot . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
                 ->save($this->webroot . $thumbnailFile);
         }
@@ -481,7 +481,7 @@ class UEditorController extends Controller
                 if (is_dir($path2)) {
                     $this->getFiles($path2, $allowFiles, $files);
                 } else {
-                    if ($this->action->id == 'list-image' && $this->thumbnail) {
+                    if ($this->action->id == 'list-image') {
                         $pat = "/\.thumbnail\.(" . $allowFiles . ")$/i";
                     } else {
                         $pat = "/\.(" . $allowFiles . ")$/i";

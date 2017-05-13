@@ -314,9 +314,9 @@ class UEditorController extends Controller
         //先处理缩略图
         if ($this->thumbnail && !empty($this->thumbnail['height']) && !empty($this->thumbnail['width'])) {
             $file = pathinfo($file);
-            $file = $file['dirname'] . '/' . $file['filename'] . '.thumbnail.' . $file['extension'];
+            $thumbnailFile = $file['dirname'] . '/' . $file['filename'] . '.thumbnail.' . $file['extension'];
             Image::thumbnail($this->webroot . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
-                ->save($this->webroot . $file);
+                ->save($this->webroot . $thumbnailFile);
         }
         //再处理缩放，默认不缩放
         //...缩放效果非常差劲-，-

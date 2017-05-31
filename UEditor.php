@@ -4,7 +4,7 @@
  * @author xbzbing<xbzbing@gmail.com>
  * @link www.crazydb.com
  *
- * UEditor版本v1.4.3
+ * UEditor版本v1.4.3.1
  * Yii版本2.0+
  *
  * 使用方法:
@@ -33,6 +33,7 @@ use yii;
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\helpers\Json;
+use yii\helpers\ArrayHelper;
 
 /**
  * Class UEditor
@@ -130,13 +131,12 @@ class UEditor extends yii\widgets\InputWidget
 
         //ready部分代码，是为了缩略图管理。UEditor本身就很大，在后台直接加载大文件图片会很卡。
         $script = <<<UEDITOR
-    var {$this->name} = UE.getEditor('{$id}',{$config});
-    {$this->name}.ready(function(){
-        this.addListener( "beforeInsertImage", function ( type, imgObjs ) {
-            for(var i=0;i < imgObjs.length;i++){
-                imgObjs[i].src = imgObjs[i].src.replace(".thumbnail","");
-            }
-        });
+        UE.getEditor('{$id}',{$config}).ready(function(){
+            this.addListener( "beforeInsertImage", function ( type, imgObjs ) {
+                for(var i=0;i < imgObjs.length;i++){
+                    imgObjs[i].src = imgObjs[i].src.replace(".thumbnail","");
+                }
+            });
     });
 UEDITOR;
 
@@ -145,6 +145,6 @@ UEDITOR;
         if ($this->hasModel())
             return Html::activeTextarea($this->model, $this->attribute);
         else
-            return Html::textarea($this->name, $this->value, ['id' => $id]);
+            return Html::textarea(ArrayHelper::getValue($this->config, 'textarea', $this->name), $this->value, ['id' => $id]);
     }
 }

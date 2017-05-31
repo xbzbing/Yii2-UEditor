@@ -21,6 +21,12 @@ use yii\helpers\ArrayHelper;
  */
 class Uploader
 {
+    /**
+     * 是否允许采集内网 IP 图片
+     * 默认不允许
+     * @var bool
+     */
+    private $allowIntranet = false;
     private $fileField; //文件域名
     private $file; //文件上传对象
     private $config; //配置信息
@@ -50,7 +56,9 @@ class Uploader
         "ERROR_UNKNOWN" => "未知错误",
         "ERROR_DEAD_LINK" => "链接不可用",
         "ERROR_HTTP_LINK" => "链接不是http链接",
-        "ERROR_HTTP_CONTENTTYPE" => "链接contentType不正确"
+        "ERROR_HTTP_CONTENTTYPE" => "链接contentType不正确",
+        "INVALID_URL" => "非法 URL",
+        "INVALID_IP" => "非法 IP"
     );
 
     /**
@@ -66,11 +74,20 @@ class Uploader
         $this->type = $type;
         if ($type == "remote") {
             $this->saveRemote();
-        } else if($type == "base64") {
+        } else if ($type == "base64") {
             $this->upBase64();
         } else {
             $this->upFile();
         }
+    }
+
+    /**
+     * 设置是否允许获取内网图片
+     * @param boolean $allow
+     */
+    public function setAllowIntranet($allow)
+    {
+        $this->allowIntranet = $allow ? true : false;
     }
 
     /**
@@ -187,15 +204,37 @@ class Uploader
             $this->stateInfo = $this->getStateInfo("ERROR_HTTP_LINK");
             return;
         }
+
+        preg_match('/(^https?:\/\/[^:\/]+)/', $imgUrl, $matches);
+        $host_with_protocol = count($matches) > 1 ? $matches[1] : '';
+
+        // 判断是否是合法 url
+        if (!filter_var($host_with_protocol, FILTER_VALIDATE_URL)) {
+            $this->stateInfo = $this->getStateInfo("INVALID_URL");
+            return;
+        }
+
+        preg_match('/^https?:\/\/(.+)/', $host_with_protocol, $matches);
+        $host_without_protocol = count($matches) > 1 ? $matches[1] : '';
+
+        // 此时提取出来的可能是 IP 也有可能是域名，先获取 IP
+        $ip = gethostbyname($host_without_protocol);
+
+        // 判断是否允许私有 IP
+        if (!$this->allowIntranet && !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE)) {
+            $this->stateInfo = $this->getStateInfo("INVALID_IP");
+            return;
+        }
+
         //获取请求头并检测死链
-        $heads = get_headers($imgUrl);
+        $heads = get_headers($imgUrl, 1);
         if (!(stristr($heads[0], "200") && stristr($heads[0], "OK"))) {
             $this->stateInfo = $this->getStateInfo("ERROR_DEAD_LINK");
             return;
         }
         //格式验证(扩展名验证和Content-Type验证)
         $fileType = strtolower(strrchr($imgUrl, '.'));
-        if (!in_array($fileType, $this->config['allowFiles']) || stristr($heads['Content-Type'], "image")) {
+        if (!in_array($fileType, $this->config['allowFiles']) || !isset($heads['Content-Type']) || !stristr($heads['Content-Type'], "image")) {
             $this->stateInfo = $this->getStateInfo("ERROR_HTTP_CONTENTTYPE");
             return;
         }
@@ -203,16 +242,18 @@ class Uploader
         //打开输出缓冲区并获取远程图片
         ob_start();
         $context = stream_context_create(
-            array('http' => array(
-                'follow_location' => false // don't follow redirects
-            ))
+            [
+                'http' => [
+                    'follow_location' => false // don't follow redirects
+                ]
+            ]
         );
         readfile($imgUrl, false, $context);
         $img = ob_get_contents();
         ob_end_clean();
         preg_match("/[\/]([^\/]*)[\.]?[^\.\/]*$/", $imgUrl, $m);
 
-        $this->oriName = $m ? $m[1]:"";
+        $this->oriName = $m ? $m[1] : "";
 
         $this->fileSize = strlen($img);
         $this->fileType = $this->getFileExt();
@@ -288,8 +329,9 @@ class Uploader
         $oriName = substr($this->oriName, 0, strrpos($this->oriName, '.'));
         $oriName = preg_replace("/[\|\?\"\<\>\/\*\\\\]+/", '', $oriName);
         $format = str_replace("{filename}", $oriName, $format);
+
         //替换随机字符串
-        $randNum = rand(1, 10000000000) . rand(1, 10000000000);
+        $randNum = rand(1, 1000000000) . rand(1, 1000000000);
         if (preg_match("/\{rand\:([\d]*)\}/i", $format, $matches)) {
             $format = preg_replace("/\{rand\:[\d]*\}/i", substr($randNum, 0, $matches[1]), $format);
         }
@@ -302,7 +344,8 @@ class Uploader
      * 获取文件名
      * @return string
      */
-    private function getFileName () {
+    private function getFileName()
+    {
         return substr($this->filePath, strrpos($this->filePath, '/') + 1);
     }
 
@@ -319,6 +362,7 @@ class Uploader
         if (substr($fullname, 0, 1) != '/') {
             $fullname = '/' . $fullname;
         }
+
         return $rootPath . $fullname;
     }
 

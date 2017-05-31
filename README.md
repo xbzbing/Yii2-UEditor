@@ -8,7 +8,7 @@ Yii2的百度UEditor扩展
 扩展特点：
 
 1. 支持多实例
-2. 支持缩略图（默认开启 `200x200`）
+2. 支持缩略图（默认关闭）
 3. 支持缩放（默认关闭）
 4. 支持水印（默认关闭）
 5. 图片管理加载优化
@@ -82,7 +82,7 @@ class EditorController extends crazydb\ueditor\UEditorController
             'thumbnail' => false,//如果将'thumbnail'设置为空，将不生成缩略图。
             'watermark' => [    //默认不生存水印
                 'path' => '', //水印图片路径
-                'start' => [0, 0] //水印图片位置
+                'position' => 9 //position in [1, 9]，表示从左上到右下的 9 个位置，即如1表示左上，5表示中间，9表示右下。
             ],
             'zoom' => ['height' => 500, 'width' => 500], //缩放，默认不缩放
             'config' => [
@@ -140,7 +140,8 @@ class EditorController extends crazydb\ueditor\UEditorController
     'config' => [
         //client config @see http://fex-team.github.io/ueditor/#start-config
         'serverUrl' => ['/ueditor/index'],//确保serverUrl正确指向后端地址
-        'lang' => 'zh-cn'
+        'lang' => 'zh-cn',
+        'iframeCssUrl' => Yii::getAlias('@web') . '/static/css/ueditor.css',// 自定义编辑器内显示效果
     ]
 ]) ?>
 ```
@@ -156,6 +157,13 @@ class EditorController extends crazydb\ueditor\UEditorController
     'value' => $value,
 ]) ?>
 ```
+
+### 其他
+
+编辑器内默认情况下行高为1，大段中文编辑显示效果非常差，但是可以通过设置 `iframeCssUrl` 来修改编辑器内显示效果。
+
+默认不支持内网 IP 图片远程采集，如果部署在内网且需要这个功能,请配置`UEditorController::allowIntranet`为`true`。
+
 
 相关链接
 -----

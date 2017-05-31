@@ -4,7 +4,7 @@
  * @author xbzbing<xbzbing@gmail.com>
  * @link www.crazydb.com
  *
- * UEditor版本v1.4.3
+ * UEditor版本v1.4.3.1
  * Yii 版本 2.0+
  */
 namespace crazydb\ueditor;
@@ -38,10 +38,11 @@ class UEditorController extends Controller
 
     /**
      * 缩略图设置
-     * 默认为200*200，如果设置为空数组则不生成缩略图
+     * 默认不开启
+     * ['height' => 200, 'width' => 200]表示生成200*200的缩略图，如果设置为空数组则不生成缩略图
      * @var array
      */
-    public $thumbnail = ['height' => 200, 'width' => 200];
+    public $thumbnail = [];
 
     /**
      * 图片缩放设置
@@ -54,11 +55,20 @@ class UEditorController extends Controller
     /**
      * 水印设置
      * 参考配置如下：
-     * ['path'=>'水印图片位置','start'=>[0, 0]]
-     * 默认位置为[0, 0]，可不配置
+     * ['path'=>'水印图片位置','position'=>0]
+     * 默认位置为 9，可不配置
+     * position in [1 ,9]，表示从左上到右下的9个位置。
      * @var array
      */
     public $watermark = [];
+
+    /**
+     * 是否允许内网采集
+     * 如果为 false 则远程图片获取不获取内网图片，防止 SSRF。
+     * 默认为 false
+     * @var bool
+     */
+    public $allowIntranet = false;
 
     /**
      * 默认 action
@@ -106,7 +116,7 @@ class UEditorController extends Controller
         ];
         $this->config = $this->config + $default + $CONFIG;
         $this->webroot = Yii::getAlias('@webroot');
-        if(!is_array($this->thumbnail))
+        if (!is_array($this->thumbnail))
             $this->thumbnail = false;
     }
 
@@ -249,6 +259,8 @@ class UEditorController extends Controller
         }
         foreach ($source as $imgUrl) {
             $item = new Uploader($imgUrl, $config, 'remote');
+            if ($this->allowIntranet)
+                $item->setAllowIntranet(true);
             $info = $item->getFileInfo();
             $info['thumbnail'] = $this->imageHandle($info['url']);
             $list[] = [
@@ -274,8 +286,12 @@ class UEditorController extends Controller
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
         $up = new Uploader($fieldName, $config, $base64);
+
+        if ($this->allowIntranet)
+            $up->setAllowIntranet(true);
+
         $info = $up->getFileInfo();
-        if ($this->thumbnail && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
+        if (($this->thumbnail or $this->zoom or $this->watermark) && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
             $info['thumbnail'] = Yii::$app->request->baseUrl . $this->imageHandle($info['url']);
         }
         $info['url'] = Yii::$app->request->baseUrl . $info['url'];
@@ -286,39 +302,84 @@ class UEditorController extends Controller
 
     /**
      * 自动处理图片
-     * @param $fullName
+     * @param $file
      * @return mixed|string
      */
-    protected function imageHandle($fullName)
+    protected function imageHandle($file)
     {
-        if (substr($fullName, 0, 1) != '/')
-            $fullName = '/' . $fullName;
+        if (substr($file, 0, 1) != '/')
+            $file = '/' . $file;
 
-        $file = $fullName;
 
         //先处理缩略图
         if ($this->thumbnail && !empty($this->thumbnail['height']) && !empty($this->thumbnail['width'])) {
-            $file = pathinfo($file);
-            $file = $file['dirname'] . '/' . $file['filename'] . '.thumbnail.' . $file['extension'];
-            Image::thumbnail($this->webroot . $fullName, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
-                ->save($this->webroot . $file);
+            $file_path = pathinfo($file);
+            $thumbnailFile = $file_path['dirname'] . '/' . $file_path['filename'] . '.thumbnail.' . $file_path['extension'];
+            Image::thumbnail($this->webroot . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
+                ->save($this->webroot . $thumbnailFile);
         }
         //再处理缩放，默认不缩放
         //...缩放效果非常差劲-，-
         if (isset($this->zoom['height']) && isset($this->zoom['width'])) {
-            $size = $this->getSize($this->webroot . $fullName);
+            $size = $this->getSize($this->webroot . $file);
             if ($size && $size[0] > 0 && $size[1] > 0) {
                 $ratio = min([$this->zoom['height'] / $size[0], $this->zoom['width'] / $size[1], 1]);
-                Image::thumbnail($this->webroot . $fullName, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
-                    ->save($this->webroot . $fullName);
+                Image::thumbnail($this->webroot . $file, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
+                    ->save($this->webroot . $file);
             }
         }
         //最后生成水印
         if (isset($this->watermark['path']) && file_exists($this->watermark['path'])) {
-            if (!isset($this->watermark['start']))
-                $this->watermark['start'] = [0, 0];
-            Image::watermark($file, $this->watermark['path'], $this->watermark['start'])
-                ->save($file);
+            if (!isset($this->watermark['position']) or $this->watermark['position'] > 9 or $this->watermark['position'] < 0 or !is_numeric($this->watermark['position']))
+                $this->watermark['position'] = 9;
+            $size = $this->getSize($this->webroot . $file);
+            $waterSize = $this->getSize($this->watermark['path']);
+            if ($size[0] > $waterSize[0] and $size[1] > $waterSize[1]) {
+                $halfX = $size[0] / 2;
+                $halfY = $size[1] / 2;
+                $halfWaterX = $waterSize[0] / 2;
+                $halfWaterY = $waterSize[1] / 2;
+                switch (intval($this->watermark['position'])) {
+                    case 1:
+                        $x = 0;
+                        $y = 0;
+                        break;
+                    case 2:
+                        $x = $halfX - $halfWaterX;
+                        $y = 0;
+                        break;
+                    case 3:
+                        $x = $size[0] - $waterSize[0];
+                        $y = 0;
+                        break;
+                    case 4:
+                        $x = 0;
+                        $y = $halfY - $halfWaterY;
+                        break;
+                    case 5:
+                        $x = $halfX - $halfWaterX;
+                        $y = $halfY - $halfWaterY;
+                        break;
+                    case 6:
+                        $x = $size[0] - $waterSize[0];
+                        $y = $halfY - $halfWaterY;
+                        break;
+                    case 7:
+                        $x = 0;
+                        $y = $size[1] - $waterSize[1];
+                        break;
+                    case 8:
+                        $x = $halfX - $halfWaterX;
+                        $y = $size[1] - $waterSize[1];
+                        break;
+                    case 9:
+                    default:
+                        $x = $size[0] - $waterSize[0];
+                        $y = $size[1] - $waterSize[1];
+                }
+                Image::watermark($this->webroot . $file, $this->watermark['path'], [$x, $y])
+                    ->save($this->webroot . $file);
+            }
         }
 
         return $file;
@@ -420,7 +481,7 @@ class UEditorController extends Controller
                 if (is_dir($path2)) {
                     $this->getFiles($path2, $allowFiles, $files);
                 } else {
-                    if ($this->action->id == 'list-image' && $this->thumbnail) {
+                    if ($this->action->id == 'list-image') {
                         $pat = "/\.thumbnail\.(" . $allowFiles . ")$/i";
                     } else {
                         $pat = "/\.(" . $allowFiles . ")$/i";

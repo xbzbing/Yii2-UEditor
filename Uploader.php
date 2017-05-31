@@ -11,6 +11,7 @@
 namespace crazydb\ueditor;
 
 use yii;
+use yii\helpers\ArrayHelper;
 
 /**
  * Class Uploader
@@ -78,7 +79,7 @@ class Uploader
      */
     private function upFile()
     {
-        $file = $this->file = $_FILES[$this->fileField];
+        $file = $this->file = ArrayHelper::getValue($_FILES, $this->fileField);
         if (!$file) {
             $this->stateInfo = $this->getStateInfo("ERROR_FILE_NOT_FOUND");
             return;
@@ -137,7 +138,7 @@ class Uploader
      */
     private function upBase64()
     {
-        $base64Data = $_POST[$this->fileField];
+        $base64Data = ArrayHelper::getValue($_POST, $this->fileField);
         $img = base64_decode($base64Data);
 
         $this->oriName = $this->config['oriName'];

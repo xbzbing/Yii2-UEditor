@@ -27,6 +27,7 @@
  *      'value' => $value,
  * ])>
  */
+
 namespace crazydb\ueditor;
 
 use yii;
@@ -126,12 +127,17 @@ class UEditor extends yii\widgets\InputWidget
     {
 
         $id = $this->hasModel() ? Html::getInputId($this->model, $this->attribute) : $this->id;
+        if (!preg_match('/^[\w\d_]+$/', $this->name))
+            $name = preg_replace('/[^\w\d_]/', '_', $this->name);
+        else
+            $name = $this->name;
 
         $config = Json::encode($this->config);
 
         //ready部分代码，是为了缩略图管理。UEditor本身就很大，在后台直接加载大文件图片会很卡。
         $script = <<<UEDITOR
-        UE.getEditor('{$id}',{$config}).ready(function(){
+        var {$name} = UE.getEditor('{$id}',{$config});
+        {$name}.ready(function(){
             this.addListener( "beforeInsertImage", function ( type, imgObjs ) {
                 for(var i=0;i < imgObjs.length;i++){
                     imgObjs[i].src = imgObjs[i].src.replace(".thumbnail","");

@@ -7,11 +7,13 @@
  * UEditor版本v1.4.3.1
  * Yii 版本 2.0+
  */
+
 namespace crazydb\ueditor;
 
 use yii;
 use yii\imagine\Image;
 use yii\web\Controller;
+use yii\base\InvalidConfigException;
 
 /**
  * Class UEditorController
@@ -77,10 +79,14 @@ class UEditorController extends Controller
     public $defaultAction = 'index';
 
     /**
-     * Web根目录
-     * @var string
+     * @var String 保存文件的目录，默认是网站根目录 @webroot
      */
-    protected $webroot;
+    protected $basePath;
+
+    /**
+     * @var String 保存文件目录对应的URL @web
+     */
+    public $baseUrl;
 
     public function init()
     {
@@ -115,7 +121,13 @@ class UEditorController extends Controller
             'fileManagerListPath' => '/upload/file/',
         ];
         $this->config = $this->config + $default + $CONFIG;
-        $this->webroot = Yii::getAlias('@webroot');
+        $webRoot = Yii::getAlias('@webroot');;
+        if (empty($this->basePath) or $this->basePath === $webRoot) {
+            $this->basePath = $webRoot;
+            $this->baseUrl = Yii::getAlias('@web');
+        }elseif (!empty($this->basePath) && empty($this->baseUrl))
+            throw new InvalidConfigException(500, 'BaseUrl is required');
+
         if (!is_array($this->thumbnail))
             $this->thumbnail = false;
     }
@@ -258,7 +270,7 @@ class UEditorController extends Controller
             $source = $_GET[$fieldName];
         }
         foreach ($source as $imgUrl) {
-            $item = new Uploader($imgUrl, $config, 'remote');
+            $item = new Uploader($imgUrl, $config, 'remote', $this->basePath);
             if ($this->allowIntranet)
                 $item->setAllowIntranet(true);
             $info = $item->getFileInfo();
@@ -285,16 +297,16 @@ class UEditorController extends Controller
      */
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
-        $up = new Uploader($fieldName, $config, $base64);
+        $up = new Uploader($fieldName, $config, $base64, $this->basePath);
 
         if ($this->allowIntranet)
             $up->setAllowIntranet(true);
 
         $info = $up->getFileInfo();
         if (($this->thumbnail or $this->zoom or $this->watermark) && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
-            $info['thumbnail'] = Yii::$app->request->baseUrl . $this->imageHandle($info['url']);
+            $info['thumbnail'] = $this->baseUrl . $this->imageHandle($info['url']);
         }
-        $info['url'] = Yii::$app->request->baseUrl . $info['url'];
+        $info['url'] = $this->baseUrl . $info['url'];
         $info['original'] = htmlspecialchars($info['original']);
         $info['width'] = $info['height'] = 500;
         return $info;
@@ -315,24 +327,24 @@ class UEditorController extends Controller
         if ($this->thumbnail && !empty($this->thumbnail['height']) && !empty($this->thumbnail['width'])) {
             $file_path = pathinfo($file);
             $thumbnailFile = $file_path['dirname'] . '/' . $file_path['filename'] . '.thumbnail.' . $file_path['extension'];
-            Image::thumbnail($this->webroot . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
-                ->save($this->webroot . $thumbnailFile);
+            Image::thumbnail($this->basePath . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
+                ->save($this->basePath . $thumbnailFile);
         }
         //再处理缩放，默认不缩放
         //...缩放效果非常差劲-，-
         if (isset($this->zoom['height']) && isset($this->zoom['width'])) {
-            $size = $this->getSize($this->webroot . $file);
+            $size = $this->getSize($this->basePath . $file);
             if ($size && $size[0] > 0 && $size[1] > 0) {
                 $ratio = min([$this->zoom['height'] / $size[0], $this->zoom['width'] / $size[1], 1]);
-                Image::thumbnail($this->webroot . $file, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
-                    ->save($this->webroot . $file);
+                Image::thumbnail($this->basePath . $file, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
+                    ->save($this->basePath . $file);
             }
         }
         //最后生成水印
         if (isset($this->watermark['path']) && file_exists($this->watermark['path'])) {
             if (!isset($this->watermark['position']) or $this->watermark['position'] > 9 or $this->watermark['position'] < 0 or !is_numeric($this->watermark['position']))
                 $this->watermark['position'] = 9;
-            $size = $this->getSize($this->webroot . $file);
+            $size = $this->getSize($this->basePath . $file);
             $waterSize = $this->getSize($this->watermark['path']);
             if ($size[0] > $waterSize[0] and $size[1] > $waterSize[1]) {
                 $halfX = $size[0] / 2;
@@ -377,8 +389,8 @@ class UEditorController extends Controller
                         $x = $size[0] - $waterSize[0];
                         $y = $size[1] - $waterSize[1];
                 }
-                Image::watermark($this->webroot . $file, $this->watermark['path'], [$x, $y])
-                    ->save($this->webroot . $file);
+                Image::watermark($this->basePath . $file, $this->watermark['path'], [$x, $y])
+                    ->save($this->basePath . $file);
             }
         }
 
@@ -434,7 +446,7 @@ class UEditorController extends Controller
         $end = $start + $size;
 
         /* 获取文件列表 */
-        $path = $this->webroot . (substr($path, 0, 1) == '/' ? '' : '/') . $path;
+        $path = $this->basePath . (substr($path, 0, 1) == '/' ? '' : '/') . $path;
         $files = $this->getFiles($path, $allowFiles);
         if (!count($files)) {
             $result = [
@@ -474,7 +486,6 @@ class UEditorController extends Controller
         if (substr($path, strlen($path) - 1) != '/') $path .= '/';
         $handle = opendir($path);
         //baseUrl用于兼容使用alias的二级目录部署方式
-        $baseUrl = Yii::$app->request->baseUrl;
         while (false !== ($file = readdir($handle))) {
             if ($file != '.' && $file != '..') {
                 $path2 = $path . $file;
@@ -488,7 +499,7 @@ class UEditorController extends Controller
                     }
                     if (preg_match($pat, $file)) {
                         $files[] = [
-                            'url' => $baseUrl . substr($path2, strlen($this->webroot)),
+                            'url' => $this->baseUrl . substr($path2, strlen($this->basePath)),
                             'mtime' => filemtime($path2)
                         ];
                     }

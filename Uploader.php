@@ -8,6 +8,7 @@
  * Modify By xbzbing@gmail.com
  * 增加Yii相关设置
  */
+
 namespace crazydb\ueditor;
 
 use yii;
@@ -59,18 +60,23 @@ class Uploader
         "INVALID_URL" => "非法 URL",
         "INVALID_IP" => "非法 IP"
     );
+    private $basePath;
 
     /**
      * 构造函数
      * @param string $fileField 表单名称
      * @param array $config 配置项
      * @param string $type 是否解析base64编码，可省略。若开启，则$fileField代表的是base64编码的字符串表单名
+     * @param string|null $basePath 保存的根目录
      */
-    public function __construct($fileField, $config, $type = "upload")
+    public function __construct($fileField, $config, $type = "upload", $basePath = null)
     {
         $this->fileField = $fileField;
         $this->config = $config;
-        $this->type = $type;
+        if($basePath)
+            $this->basePath = $basePath;
+        else
+            $this->basePath = Yii::getAlias('@webroot');
         if ($type == "remote") {
             $this->saveRemote();
         } else if ($type == "base64") {
@@ -91,7 +97,7 @@ class Uploader
 
     /**
      * 上传文件的主处理方法
-     * @return mixed
+     * @return void
      */
     private function upFile()
     {
@@ -150,7 +156,7 @@ class Uploader
 
     /**
      * 处理base64编码的图片上传
-     * @return mixed
+     * @return void
      */
     private function upBase64()
     {
@@ -191,7 +197,7 @@ class Uploader
 
     /**
      * 拉取远程图片
-     * @return mixed
+     * @return void
      */
     private function saveRemote()
     {
@@ -356,13 +362,12 @@ class Uploader
     private function getFilePath()
     {
         $fullname = $this->fullName;
-        $rootPath = Yii::getAlias('@webroot');
 
         if (substr($fullname, 0, 1) != '/') {
             $fullname = '/' . $fullname;
         }
 
-        return $rootPath . $fullname;
+        return $this->basePath . $fullname;
     }
 
     /**
@@ -378,7 +383,7 @@ class Uploader
      * 文件大小检测
      * @return bool
      */
-    private function  checkSize()
+    private function checkSize()
     {
         return $this->fileSize <= ($this->config["maxSize"]);
     }

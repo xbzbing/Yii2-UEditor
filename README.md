@@ -19,13 +19,13 @@ Yii2的百度UEditor扩展
 
 | 依赖 | 约束 | 说明 |
 |---|---|---|
-| PHP | `>=7.4` | 与 Yii2 2.0.40+ 的要求一致 |
+| PHP | `>=7.4` | 与 Yii2 2.0.55 起的要求一致 |
 | yiisoft/yii2 | `~2.0.14` | 扩展仅使用 `AssetBundle`、`InputWidget`、`Controller` 等全系稳定的 API |
 | yiisoft/yii2-imagine | `~2.1.0` | 缩略图与水印功能所需 |
 
 关于 Yii2 版本的两点说明：
 
-- 扩展只用到 2.0 全系稳定的 API，因此约束的下界是 `2.0.14`，上界不设限。
+- 扩展只用到 2.0 全系稳定的 API，因此约束的下界是 `2.0.14`。`~2.0.14` 等价于 `>=2.0.14 <2.1.0`；2.1 从未发布，实际上等同于不设上界。
 - 不过在 Composer 2.10 及以上版本中，安全策略（`audit.block-insecure`，默认开启）会拦截存在已知漏洞的版本。Yii2 2.0.54 及以下受 CVE-2026-39850（本地文件包含）影响，因此**新装时实际解析到的版本不会低于 2.0.55**。这是 Composer 的行为，与本扩展的版本约束无关。若需安装更早的 Yii2，请在项目根包中自行关闭该策略，并自行评估安全风险。
 
 安装
@@ -213,7 +213,7 @@ class EditorController extends crazydb\ueditor\UEditorController
 
 | 组件 | 版本 | 授权 | 用途 |
 |---|---|---|---|
-| jQuery | 3.7.1 | MIT | 对话框 iframe 与前台内容页渲染所需 |
+| jQuery | 3.7.1 | MIT | 仅对话框 iframe 所需；前台内容页渲染自 1.7 起不再依赖 jQuery |
 | ECharts | 5.6.0 | Apache-2.0 | 图表对话框与前台图表渲染；`LICENSE` 与 `NOTICE` 随包分发 |
 | CodeMirror | 2.2 | MIT | 代码对话框 |
 | SyntaxHighlighter | 1.5.1（XRegExp 1.5.1） | MIT | 前台代码高亮 |
@@ -221,6 +221,10 @@ class EditorController extends crazydb\ueditor\UEditorController
 | WebUploader | 0.1.2 | MIT | 上传组件 |
 
 上表版本与授权均取自各文件头部的版权声明。
+
+这些组件直接随 `assets/third-party/` 分发，而不是通过 Composer / asset-packagist 引入：UEditor 的对话框是独立 iframe，内部以相对路径的 `<script src>` 加载脚本，这条加载路径不经 Yii2 的 AssetManager 解析，因此第三方前端库与 UEditor 核心一样必须随包发布。升级这些组件时需要同步更新文件本体与上表版本号。
+
+ECharts 选用的是官方 `common` 构建而非更小的 `simple` 构建。`simple` 构建（469 KB）未注册 Title、Tooltip、Legend 三个组件，而本扩展的 option 三处都用到它们——换用后图表会静默丢失标题、图例与悬浮提示。`common` 构建（664 KB）是能覆盖全部六种图表类型的最小官方构建。
 
 图表引擎自 1.7 起由 Highcharts 3.0.6 替换为 ECharts 5.6.0，以消除 Highcharts 的商业授权风险。
 替换对已发布内容零迁移：图表仍以 `<table data-chart="…">` 形式存在，仅渲染层更改。
@@ -232,10 +236,21 @@ class EditorController extends crazydb\ueditor\UEditorController
 
 ### 目标浏览器
 
-不包含 IE8 及以下版本。
+IE9 及以上。不包含 IE8 及以下版本（未逐一实测 IE9/IE10 真机）。
 
 图表引擎 ECharts 5.x 自该版本起放弃 IE8 支持并移除了 VML 渲染器。
 代码中仍保留针对旧版 IE 的兼容分支（继承自 UEditor 1.4.3），但这些分支不在支持范围内。
+
+### 维护：min 文件
+
+`assets/ueditor.parse.min.js` 由 `assets/ueditor.parse.js` 压缩生成，**不要手工编辑**。
+
+```bash
+bash scripts/build-parse-min.sh
+```
+
+脚本固定使用 terser 5.51.2。改完 `ueditor.parse.js` 后请重新生成并提交，同时在 PR 中贴出该命令。
+`docs/local/_smoke/` 下的冒烟测试会分别加载源码版与 min 版夹具，用于守卫两者行为一致。
 
 ### 其他
 

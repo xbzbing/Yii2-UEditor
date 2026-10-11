@@ -32,6 +32,7 @@ class Uploader
     private $config; //配置信息
     private $oriName; //原始文件名
     private $fileName; //新文件名
+    private $type; //上传类型：upload / base64 / remote
     private $fullName; //完整文件名,即从当前配置目录开始的URL
     private $filePath; //完整文件名,即从当前配置目录开始的URL
     private $fileSize; //文件大小
@@ -351,13 +352,17 @@ class Uploader
 
     /**
      * 获取文件完整路径
-     * 这里使用了Yii别名
+     * 优先使用调用方通过 $config['rootPath'] 传入的 web 根目录，
+     * 以便与 UEditorController::$webroot 保持一致（支持子类覆写 webroot）。
+     * 未传入时回退到 Yii 别名 @webroot，保持向后兼容。
      * @return string
      */
     private function getFilePath()
     {
         $fullname = $this->fullName;
-        $rootPath = Yii::getAlias('@webroot');
+        $rootPath = isset($this->config['rootPath']) && $this->config['rootPath'] !== ''
+            ? $this->config['rootPath']
+            : Yii::getAlias('@webroot');
 
         if (substr($fullname, 0, 1) != '/') {
             $fullname = '/' . $fullname;

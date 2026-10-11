@@ -247,7 +247,8 @@ class UEditorController extends Controller
             'pathFormat' => $this->config['catcherPathFormat'],
             'maxSize' => $this->config['catcherMaxSize'],
             'allowFiles' => $this->config['catcherAllowFiles'],
-            'oriName' => 'remote.png'
+            'oriName' => 'remote.png',
+            'rootPath' => $this->webroot
         ];
         $fieldName = $this->config['catcherFieldName'];
         /* 抓取远程图片 */
@@ -285,6 +286,8 @@ class UEditorController extends Controller
      */
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
+        //让 Uploader 与控制器使用同一个 web 根目录，避免子类覆写 webroot 后保存路径不一致
+        $config['rootPath'] = $this->webroot;
         $up = new Uploader($fieldName, $config, $base64);
 
         if ($this->allowIntranet)

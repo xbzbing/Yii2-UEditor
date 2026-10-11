@@ -14,6 +14,20 @@ Yii2的百度UEditor扩展
 5. 图片管理加载优化
 
 
+环境要求
+------------
+
+| 依赖 | 约束 | 说明 |
+|---|---|---|
+| PHP | `>=7.4` | 与 Yii2 2.0.40+ 的要求一致 |
+| yiisoft/yii2 | `~2.0.14` | 扩展仅使用 `AssetBundle`、`InputWidget`、`Controller` 等全系稳定的 API |
+| yiisoft/yii2-imagine | `~2.1.0` | 缩略图与水印功能所需 |
+
+关于 Yii2 版本的两点说明：
+
+- 扩展只用到 2.0 全系稳定的 API，因此约束的下界是 `2.0.14`，上界不设限。
+- 不过在 Composer 2.10 及以上版本中，安全策略（`audit.block-insecure`，默认开启）会拦截存在已知漏洞的版本。Yii2 2.0.54 及以下受 CVE-2026-39850（本地文件包含）影响，因此**新装时实际解析到的版本不会低于 2.0.55**。这是 Composer 的行为，与本扩展的版本约束无关。若需安装更早的 Yii2，请在项目根包中自行关闭该策略，并自行评估安全风险。
+
 安装
 ------------
 
@@ -26,6 +40,41 @@ php composer.phar require --prefer-dist crazydb/yii2-ueditor "*"
 ```
 
 或者将 `"crazydb/yii2-ueditor": "*"` 添加到项目的 `composer.json` 文件.
+
+### 需要在宿主项目中配置 asset-packagist
+
+Yii2 依赖若干 `bower-asset/*` 前端包（jQuery、inputmask 等），这些包不在 Packagist 上，需要通过 [asset-packagist](https://asset-packagist.org/) 提供。
+
+**这一步必须配置在宿主项目的 `composer.json` 中**。扩展自身声明的 `repositories` 对 Composer 无效，因为只有根包的 `repositories` 生效，所以无法由扩展代为声明：
+
+```json
+{
+    "repositories": {
+        "asset-packagist.org": {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    }
+}
+```
+
+未配置时，安装会以 `could not be found` 报错告终，提示找不到 `bower-asset/jquery` 等包。
+
+### 覆盖 `@bower` 别名
+
+asset-packagist 将前端包安装到 `vendor/bower-asset/`，而 Yii2 默认的 `@bower` 别名指向 `vendor/bower/`（旧的 bower/npm 布局）。若你的项目未对齐这两者，编辑器会因 jQuery 资源无法发布而报错：
+
+```
+The file or directory to be published does not exist: .../vendor/bower/jquery/dist
+```
+
+在应用配置中覆盖该别名即可：
+
+```php
+'aliases' => [
+    '@bower' => '@vendor/bower-asset',
+],
+```
 
 
 使用方法
@@ -198,3 +247,4 @@ class EditorController extends crazydb\ueditor\UEditorController
 相关链接
 -----
 @see https://github.com/fex-team/ueditor
+

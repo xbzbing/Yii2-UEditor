@@ -158,6 +158,36 @@ class EditorController extends crazydb\ueditor\UEditorController
 ]) ?>
 ```
 
+### 第三方组件授权
+
+扩展自带以下第三方组件（位于 `assets/third-party/`）。这些文件会随 AssetBundle 一起发布给使用方，因此在此声明其授权与来源：
+
+| 组件 | 版本 | 授权 | 用途 |
+|---|---|---|---|
+| jQuery | 3.7.1 | MIT | 对话框 iframe 与前台内容页渲染所需 |
+| ECharts | 5.6.0 | Apache-2.0 | 图表对话框与前台图表渲染；`LICENSE` 与 `NOTICE` 随包分发 |
+| CodeMirror | 2.2 | MIT | 代码对话框 |
+| SyntaxHighlighter | 1.5.1（XRegExp 1.5.1） | MIT | 前台代码高亮 |
+| video-js | 4.3.0 | Apache-2.0 | 前台视频解析 |
+| WebUploader | 0.1.2 | MIT | 上传组件 |
+
+上表版本与授权均取自各文件头部的版权声明。
+
+图表引擎自 1.7 起由 Highcharts 3.0.6 替换为 ECharts 5.6.0，以消除 Highcharts 的商业授权风险。
+替换对已发布内容零迁移：图表仍以 `<table data-chart="…">` 形式存在，仅渲染层更改。
+
+**允许的视觉差异**（更换图表引擎导致，属预期）：
+- 饼图标签样式与高亮行为略有不同；
+- 数值轴的 0 基线参考线不再绘制（Highcharts 的 `plotLines` 在 ECharts 中无对应项）；
+- 不再显示 Highcharts 的右下角 Credits 链接，也不再提供导出按钮（原集成中二者本就被禁用）。
+
+### 目标浏览器
+
+不包含 IE8 及以下版本。
+
+图表引擎 ECharts 5.x 自该版本起放弃 IE8 支持并移除了 VML 渲染器。
+代码中仍保留针对旧版 IE 的兼容分支（继承自 UEditor 1.4.3），但这些分支不在支持范围内。
+
 ### 其他
 
 编辑器内默认情况下行高为1，大段中文编辑显示效果非常差，但是可以通过设置 `iframeCssUrl` 来修改编辑器内显示效果。

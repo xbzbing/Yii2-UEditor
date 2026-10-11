@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>PENDING</title>
+</head>
+<body>
+<div id="content">
+    <table data-chart="title:月度销量;subTitle:2026;xTitle:月份;yTitle:销量;suffix:件;tip:占比;dataFormat:1;chartType:0">
+        <tr><th>月份</th><th>一月</th><th>二月</th><th>三月</th></tr>
+        <tr><th>单价</th><td>10</td><td>20</td><td>30</td></tr>
+        <tr><th>总额</th><td>100</td><td>200</td><td>300</td></tr>
+    </table>
+</div>
+
+<script src="/assets/ueditor.parse.min.js"></script>
+<script>
+    var steps = [];
+    function log(s) { steps.push(s); document.title = steps.join('|'); }
+
+    try {
+        log('parseLoaded:' + (typeof uParse));
+        uParse('#content', { rootPath: '/assets/' });
+        log('called');
+    } catch (e) {
+        log('ERR:' + e.message);
+    }
+
+    setTimeout(function () {
+        try {
+            var canvases = document.querySelectorAll('.edui-chart-container canvas').length;
+            var containers = document.querySelectorAll('.edui-chart-container').length;
+            var tables = document.querySelectorAll('table[data-chart]').length;
+            var ech = typeof echarts;
+            var inst = null;
+            var el = document.querySelector('.edui-chart-container');
+            if (el && ech === 'object') {
+                inst = !!echarts.getInstanceByDom(el);
+            } else if (ech === 'undefined' && window.__loadErr) {
+                document.title = 'LOAD_ERR:' + window.__loadErr;
+                return;
+            }
+            document.title = [
+                'echarts=' + ech,
+                'containers=' + containers,
+                'canvas=' + canvases,
+                'tables=' + tables,
+                'instance=' + inst
+            ].join(' | ');
+        } catch (e) {
+            document.title = 'FINAL_ERR:' + e.message;
+        }
+    }, 3000);
+</script>
+</body>
+</html>

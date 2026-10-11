@@ -36,5 +36,7 @@ composer.lock
 # .htaccess 文件
 .htaccess
 
-# 本地工作文档（方案、笔记），不入库
-/docs/local/
+# 本地工作文档（方案、笔记），不入库；但前端冒烟夹具需要入库，
+# 否则评审者无法复现验证结果（方案 §10 开放项 5）
+/docs/local/*
+!/docs/local/_smoke/

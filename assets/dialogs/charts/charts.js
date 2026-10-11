@@ -38,7 +38,12 @@ window.onload = function () {
 
             resizeTimer = null;
 
-            renderCharts();
+            //ECharts 不会自动跟随容器尺寸变化，需显式 resize
+            var chart = echarts.getInstanceByDom( document.getElementById( 'chartsContainer' ) );
+
+            if ( chart ) {
+                chart.resize();
+            }
 
         }, 500 );
 
@@ -200,53 +205,88 @@ function initEvent () {
 
 function renderCharts () {
 
-    var data = collectData();
+    var data = collectData(),
+        container = document.getElementById( 'chartsContainer' ),
+        chart = echarts.getInstanceByDom( container );
 
-    $('#chartsContainer').highcharts( $.extend( {}, chartsConfig[ currentChartType ], {
+    if ( !chart ) {
+        chart = echarts.init( container );
+    }
 
-        credits: {
-            enabled: false
-        },
-        exporting: {
-            enabled: false
-        },
+    chart.setOption( buildOption( data ), true );
+
+}
+
+/**
+ * 组装 ECharts option。
+ *
+ * chartsConfig[currentChartType] 来自 chart.config.js，其中 seriesType 持有图表类型，
+ * series 持有该类型的专属 series 默认值。二者按 ECharts 的 option 结构分布到不同层级，
+ * 不能整体浅合并，因此这里显式展开。
+ *
+ * data.series 由 collectData() 构造，每条 series 需单独注入 type。
+ * @param data collectData() 的返回值
+ */
+function buildOption ( data ) {
+
+    var config = chartsConfig[ currentChartType ],
+        series = [],
+        i, cur;
+
+    for ( i = 0; cur = data.series[ i ]; i++ ) {
+
+        series.push( $.extend( {
+            type: config.seriesType
+        }, config.series || {}, cur ) );
+
+    }
+
+    return {
+        //ECharts 无 Highcharts 的 credits/exporting 概念，无需禁用项
         title: {
-            text: data.title,
-            x: -20 //center
-        },
-        subtitle: {
-            text: data.subTitle,
-            x: -20
-        },
-        xAxis: {
-            title: {
-                text: data.xTitle
-            },
-            categories: data.categories
-        },
-        yAxis: {
-            title: {
-                text: data.yTitle
-            },
-            plotLines: [{
-                value: 0,
-                width: 1,
-                color: '#808080'
-            }]
+            text: data.title || '',
+            subtext: data.subTitle || ''
         },
         tooltip: {
-            enabled: true,
-            valueSuffix: data.suffix
-        },
-        legend: {
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle',
-            borderWidth: 1
-        },
-        series: data.series
+            trigger: 'item',
+            formatter: function ( params ) {
 
-    } ));
+                var suffix = data.suffix || '';
+
+                //饼图的 value 是数据项本身，取 params.value 需兼容 [name, value] 结构
+                var value = params.value instanceof Array
+                    ? params.value[ 1 ]
+                    : params.value;
+
+                return params.name + ': ' + value + suffix;
+
+            }
+        },
+        legend: ( data.title || data.subTitle || data.suffix ) ? {
+            orient: 'vertical',
+            right: 0,
+            top: 'middle',
+            borderWidth: 1
+        } : false,
+        xAxis: data.categories ? {
+            //条形图为横向，x 轴为数值轴（类型已由 config.xAxis 指定）
+            type: config.xAxis ? config.xAxis.type : 'category',
+            name: data.xTitle || '',
+            data: config.xAxis ? undefined : data.categories
+        } : undefined,
+        yAxis: data.categories ? {
+            type: config.yAxis ? config.yAxis.type : 'value',
+            name: data.yTitle || ''
+        } : undefined,
+        grid: {
+            //为轴标题留出空间，否则会与坐标轴标签重叠
+            top: 40,
+            left: 10,
+            right: 90,
+            bottom: 30
+        },
+        series: series
+    };
 
 }
 

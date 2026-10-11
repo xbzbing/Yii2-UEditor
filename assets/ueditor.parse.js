@@ -631,41 +631,18 @@ UE.parse.register('charts',function( utils ){
     //加载资源
     function loadResources () {
 
-        loadJQuery();
+        loadEcharts();
 
     }
 
-    function loadJQuery () {
+    function loadEcharts () {
 
-        //不存在jquery， 则加载jquery
-        if ( !window.jQuery ) {
-
-            utils.loadFile(document,{
-                src : resourceRoot + "/third-party/jquery-3.7.1.min.js",
-                tag : "script",
-                type : "text/javascript",
-                defer : "defer"
-            },function(){
-
-                loadHighcharts();
-
-            });
-
-        } else {
-
-            loadHighcharts();
-
-        }
-
-    }
-
-    function loadHighcharts () {
-
-        //不存在Highcharts， 则加载Highcharts
-        if ( !window.Highcharts ) {
+        //不存在echarts， 则加载echarts
+        //注意：图表渲染不再依赖 jQuery（ECharts 自身不依赖 jQuery）
+        if ( !window.echarts ) {
 
             utils.loadFile(document,{
-                src : resourceRoot + "/third-party/highcharts/highcharts.js",
+                src : resourceRoot + "/third-party/echarts/echarts.common.min.js",
                 tag : "script",
                 type : "text/javascript",
                 defer : "defer"
@@ -724,57 +701,68 @@ UE.parse.register('charts',function( utils ){
     /**
      * 渲染图表
      * @param container 图表容器节点对象
-     * @param typeConfig 图表类型配置
+     * @param typeConfig 图表类型配置（取自 chart.config.js，含 seriesType）
      * @param config 图表通用配置
      * */
     function renderChart ( container, typeConfig, config ) {
 
+        var series = [],
+            i, cur;
 
-        $( container ).highcharts( $.extend( {}, typeConfig, {
+        for ( i = 0; cur = config.series[ i ]; i++ ) {
 
-            credits: {
-                enabled: false
-            },
-            exporting: {
-                enabled: false
-            },
+            //ECharts 要求每条 series 都显式携带 type
+            //此处不用 jQuery 的 $.extend：parse 侧的图表渲染已不再加载 jQuery
+            series.push( utils.extend( {}, cur, {
+                type: typeConfig.seriesType
+            } ) );
+
+        }
+
+        //ECharts 无 Highcharts 的 credits/exporting 概念，无需禁用项
+        echarts.init( container ).setOption( {
             title: {
-                text: config.title,
-                x: -20 //center
-            },
-            subtitle: {
-                text: config.subTitle,
-                x: -20
-            },
-            xAxis: {
-                title: {
-                    text: config.xTitle
-                },
-                categories: config.categories
-            },
-            yAxis: {
-                title: {
-                    text: config.yTitle
-                },
-                plotLines: [{
-                    value: 0,
-                    width: 1,
-                    color: '#808080'
-                }]
+                text: config.title || '',
+                subtext: config.subTitle || ''
             },
             tooltip: {
-                enabled: true,
-                valueSuffix: config.suffix
-            },
-            legend: {
-                layout: 'vertical',
-                align: 'right',
-                verticalAlign: 'middle',
-                borderWidth: 1
-            },
-            series: config.series
+                trigger: 'item',
+                formatter: function ( params ) {
 
-        } ));
+                    var suffix = config.suffix || '',
+                        value = params.value instanceof Array
+                            ? params.value[ 1 ]
+                            : params.value;
+
+                    return params.name + ': ' + value + suffix;
+
+                }
+            },
+            legend: config.series.length > 0 ? {
+                orient: 'vertical',
+                right: 0,
+                top: 'middle',
+                borderWidth: 1
+            } : false,
+            xAxis: config.categories ? {
+                //条形图为横向，x 轴为数值轴（类型已由 typeConfig.xAxis 指定）
+                type: typeConfig.xAxis ? typeConfig.xAxis.type : 'category',
+                name: config.xTitle || '',
+                data: typeConfig.xAxis ? undefined : config.categories
+            } : undefined,
+            yAxis: config.categories ? {
+                type: typeConfig.yAxis ? typeConfig.yAxis.type : 'value',
+                name: config.yTitle || ''
+            } : undefined,
+            grid: {
+                //为轴标题留出空间，否则会与坐标轴标签重叠
+                top: 40,
+                left: 10,
+                right: 90,
+                bottom: 30
+            },
+            series: series
+        } );
 
     }
 

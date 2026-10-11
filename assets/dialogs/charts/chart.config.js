@@ -58,3 +58,75 @@ var typeConfig = [
         }
     }
 ];
+
+/**
+ * 组装 ECharts option。
+ *
+ * 两个消费方——对话框预览（charts.js 的 buildOption）与前台渲染（ueditor.parse.js
+ * 的 renderChart）——共用此函数，避免 option 结构在两处各写一份而逐渐漂移。
+ *
+ * @param typeItem typeConfig 中的某一项，含 seriesType，可选 series / xAxis / yAxis。
+ * @param data     已归一的数据：{ series, categories, title, subTitle, xTitle, yTitle, suffix }。
+ * @param extend   浅合并函数（对话框传 $.extend，前台传 utils.extend），签名均为 (target, ...sources)。
+ */
+function buildChartOption ( typeItem, data, extend ) {
+
+    var series = [],
+        i, cur;
+
+    for ( i = 0; cur = data.series[ i ]; i++ ) {
+
+        //ECharts 要求每条 series 都显式携带 type；typeItem.series 承载该类型的专属默认值
+        series.push( extend( {
+            type: typeItem.seriesType
+        }, typeItem.series || {}, cur ) );
+
+    }
+
+    return {
+        //ECharts 无 Highcharts 的 credits/exporting 概念，无需禁用项
+        title: {
+            text: data.title || '',
+            subtext: data.subTitle || ''
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function ( params ) {
+
+                var suffix = data.suffix || '',
+                    //饼图的 value 是数据项本身，取 params.value 需兼容 [name, value] 结构
+                    value = params.value instanceof Array
+                        ? params.value[ 1 ]
+                        : params.value;
+
+                return params.name + ': ' + value + suffix;
+
+            }
+        },
+        legend: ( data.title || data.subTitle || data.suffix ) ? {
+            orient: 'vertical',
+            right: 0,
+            top: 'middle',
+            borderWidth: 1
+        } : false,
+        xAxis: data.categories ? {
+            //条形图为横向，x 轴为数值轴（类型已由 typeItem.xAxis 指定）
+            type: typeItem.xAxis ? typeItem.xAxis.type : 'category',
+            name: data.xTitle || '',
+            data: typeItem.xAxis ? undefined : data.categories
+        } : undefined,
+        yAxis: data.categories ? {
+            type: typeItem.yAxis ? typeItem.yAxis.type : 'value',
+            name: data.yTitle || ''
+        } : undefined,
+        grid: {
+            //为轴标题留出空间，否则会与坐标轴标签重叠
+            top: 40,
+            left: 10,
+            right: 90,
+            bottom: 30
+        },
+        series: series
+    };
+
+}

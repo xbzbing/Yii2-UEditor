@@ -11,6 +11,8 @@
         }
     ],
     "require": {
+        "php": ">=7.4.0",
+        "yiisoft/yii2": "~2.0.14",
         "yiisoft/yii2-imagine": "~2.1.0"
     },
     "autoload": {

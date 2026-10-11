@@ -1,0 +1,45 @@
+name: smoke
+
+on:
+  push:
+    branches: [master, '1.7-dev']
+  pull_request:
+
+jobs:
+  parse-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ubuntu-latest images ship Chrome; prefer it over apt's chromium-browser,
+      # which is a snap wrapper on recent Ubuntu and does not run headless.
+      - name: Locate Chrome
+        id: chrome
+        run: |
+          for c in google-chrome google-chrome-stable chromium chromium-browser; do
+            p="$(command -v "$c" || true)"
+            if [ -n "$p" ]; then
+              echo "bin=$p" >> "$GITHUB_OUTPUT"
+              "$p" --version
+              exit 0
+            fi
+          done
+          echo "no Chrome/Chromium binary found on the runner" >&2
+          exit 1
+
+      - name: Verify the minified parser matches its source
+        run: |
+          bash scripts/build-parse-min.sh
+          if ! git diff --exit-code assets/ueditor.parse.min.js; then
+            echo "assets/ueditor.parse.min.js is stale — run scripts/build-parse-min.sh and commit the result" >&2
+            exit 1
+          fi
+
+      - name: Front-end chart smoke (source + minified fixtures)
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.bin }}
+        run: node docs/local/_smoke/verify-parse.js

@@ -56,6 +56,8 @@ html, body {
 
 .charts-container {
     border-left: 1px solid #c3c3c3;
+    /* ECharts 需要容器有确定的非零高度；父级 .charts-view 的 height 不会向下传递 */
+    height: 100%;
 }
 
 .charts-format fieldset {

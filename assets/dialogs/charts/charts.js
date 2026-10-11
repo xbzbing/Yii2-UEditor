@@ -38,7 +38,12 @@ window.onload = function () {
 
             resizeTimer = null;
 
-            renderCharts();
+            //ECharts 不会自动跟随容器尺寸变化，需显式 resize
+            var chart = echarts.getInstanceByDom( document.getElementById( 'chartsContainer' ) );
+
+            if ( chart ) {
+                chart.resize();
+            }
 
         }, 500 );
 
@@ -200,53 +205,29 @@ function initEvent () {
 
 function renderCharts () {
 
-    var data = collectData();
+    var data = collectData(),
+        container = document.getElementById( 'chartsContainer' ),
+        chart = echarts.getInstanceByDom( container );
 
-    $('#chartsContainer').highcharts( $.extend( {}, chartsConfig[ currentChartType ], {
+    if ( !chart ) {
+        chart = echarts.init( container );
+    }
 
-        credits: {
-            enabled: false
-        },
-        exporting: {
-            enabled: false
-        },
-        title: {
-            text: data.title,
-            x: -20 //center
-        },
-        subtitle: {
-            text: data.subTitle,
-            x: -20
-        },
-        xAxis: {
-            title: {
-                text: data.xTitle
-            },
-            categories: data.categories
-        },
-        yAxis: {
-            title: {
-                text: data.yTitle
-            },
-            plotLines: [{
-                value: 0,
-                width: 1,
-                color: '#808080'
-            }]
-        },
-        tooltip: {
-            enabled: true,
-            valueSuffix: data.suffix
-        },
-        legend: {
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle',
-            borderWidth: 1
-        },
-        series: data.series
+    chart.setOption( buildOption( data ), true );
 
-    } ));
+}
+
+/**
+ * 组装 ECharts option。
+ *
+ * 实际结构由 chart.config.js 的共享函数 buildChartOption 产出，对话框预览与前台渲染
+ * （ueditor.parse.js）共用同一份实现，此处只负责挑选当前图表类型。
+ *
+ * @param data collectData() 的返回值
+ */
+function buildOption ( data ) {
+
+    return buildChartOption( chartsConfig[ currentChartType ], data );
 
 }
 
@@ -432,7 +413,12 @@ function getSeriesForPieChart () {
         var title = tableData[ 0 ][ j ],
             val = tableData[ 1 ][ j ];
 
-        series.data.push( [ title, val ] );
+        //ECharts 的饼图只认 {name, value}：写成 [name, value] 数组会被当成
+        //value=name（字符串），角度算不出来，整块饼图渲染为空
+        series.data.push( {
+            name: title,
+            value: val
+        } );
 
     }
 

@@ -631,41 +631,18 @@ UE.parse.register('charts',function( utils ){
     //加载资源
     function loadResources () {
 
-        loadJQuery();
+        loadEcharts();
 
     }
 
-    function loadJQuery () {
+    function loadEcharts () {
 
-        //不存在jquery， 则加载jquery
-        if ( !window.jQuery ) {
-
-            utils.loadFile(document,{
-                src : resourceRoot + "/third-party/jquery-3.7.1.min.js",
-                tag : "script",
-                type : "text/javascript",
-                defer : "defer"
-            },function(){
-
-                loadHighcharts();
-
-            });
-
-        } else {
-
-            loadHighcharts();
-
-        }
-
-    }
-
-    function loadHighcharts () {
-
-        //不存在Highcharts， 则加载Highcharts
-        if ( !window.Highcharts ) {
+        //不存在echarts， 则加载echarts
+        //注意：图表渲染不再依赖 jQuery（ECharts 自身不依赖 jQuery）
+        if ( !window.echarts ) {
 
             utils.loadFile(document,{
-                src : resourceRoot + "/third-party/highcharts/highcharts.js",
+                src : resourceRoot + "/third-party/echarts/echarts.common.min.js",
                 tag : "script",
                 type : "text/javascript",
                 defer : "defer"
@@ -704,7 +681,8 @@ UE.parse.register('charts',function( utils ){
 
         var config = null,
             chartConfig = null,
-            container = null;
+            container = null,
+            instances = [];
 
         for ( var i = 0, len = sources.length; i < len; i++ ) {
 
@@ -714,67 +692,58 @@ UE.parse.register('charts',function( utils ){
 
             container = createContainer( config.table );
 
-            renderChart( container, typeConfig[ config.meta.chartType ], chartConfig );
+            instances.push( renderChart( container, typeConfig[ config.meta.chartType ], chartConfig ) );
 
         }
 
+        bindResize( instances );
+
+    }
+
+    //ECharts 不会自动跟随窗口尺寸变化，需显式 resize（对话框侧同理，见 charts.js）
+    function bindResize ( instances ) {
+
+        if ( !instances.length || !window.addEventListener ) {
+            return;
+        }
+
+        var resizeTimer = null;
+
+        window.addEventListener( 'resize', function () {
+
+            if ( resizeTimer ) {
+                window.clearTimeout( resizeTimer );
+            }
+
+            resizeTimer = window.setTimeout( function () {
+
+                resizeTimer = null;
+
+                for ( var i = 0, chart; chart = instances[ i ]; i++ ) {
+                    chart.resize();
+                }
+
+            }, 200 );
+
+        }, false );
 
     }
 
     /**
      * 渲染图表
      * @param container 图表容器节点对象
-     * @param typeConfig 图表类型配置
+     * @param typeItem 图表类型配置（取自 chart.config.js，含 seriesType）
      * @param config 图表通用配置
+     * @return ECharts 实例
      * */
-    function renderChart ( container, typeConfig, config ) {
+    function renderChart ( container, typeItem, config ) {
 
+        //option 结构由 chart.config.js 的共享函数 buildChartOption 产出，与对话框预览一致
+        var chart = echarts.init( container );
 
-        $( container ).highcharts( $.extend( {}, typeConfig, {
+        chart.setOption( buildChartOption( typeItem, config ) );
 
-            credits: {
-                enabled: false
-            },
-            exporting: {
-                enabled: false
-            },
-            title: {
-                text: config.title,
-                x: -20 //center
-            },
-            subtitle: {
-                text: config.subTitle,
-                x: -20
-            },
-            xAxis: {
-                title: {
-                    text: config.xTitle
-                },
-                categories: config.categories
-            },
-            yAxis: {
-                title: {
-                    text: config.yTitle
-                },
-                plotLines: [{
-                    value: 0,
-                    width: 1,
-                    color: '#808080'
-                }]
-            },
-            tooltip: {
-                enabled: true,
-                valueSuffix: config.suffix
-            },
-            legend: {
-                layout: 'vertical',
-                align: 'right',
-                verticalAlign: 'middle',
-                borderWidth: 1
-            },
-            series: config.series
-
-        } ));
+        return chart;
 
     }
 
@@ -852,7 +821,12 @@ UE.parse.register('charts',function( utils ){
 
             for ( var i = 1, len = data[ 0 ].length; i < len; i++ ) {
 
-                curData.push( [ data[ 0 ][ i ], data[ 1 ][ i ] | 0 ] );
+                //ECharts 的饼图只认 {name, value}：写成 [name, value] 数组会被当成
+                //value=name（字符串），角度算不出来，整块饼图渲染为空
+                curData.push( {
+                    name: data[ 0 ][ i ],
+                    value: data[ 1 ][ i ] | 0
+                } );
 
             }
 

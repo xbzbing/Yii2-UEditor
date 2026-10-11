@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>PENDING</title>
+</head>
+<body>
+<!--
+  前台渲染冒烟夹具（min 版 ueditor.parse.min.js）。
+  与 charts-parse.html 结构一致，仅引入的解析脚本不同——用于守卫 min 产物与源码的行为
+  一致（历史上 min 曾被手改引入「series 恒为空」的 bug）。两份夹具的断言由 verify-parse.js
+  统一执行。
+-->
+<div id="content">
+    <table data-chart="title:月度销量;subTitle:2026;xTitle:月份;yTitle:销量;suffix:件;tip:占比;dataFormat:1;chartType:0">
+        <tr><th>月份</th><th>一月</th><th>二月</th><th>三月</th></tr>
+        <tr><th>单价</th><td>10</td><td>20</td><td>30</td></tr>
+        <tr><th>总额</th><td>100</td><td>200</td><td>300</td></tr>
+    </table>
+    <table data-chart="title:面积;xTitle:月份;yTitle:销量;dataFormat:1;chartType:2">
+        <tr><th>月份</th><th>一月</th><th>二月</th><th>三月</th></tr>
+        <tr><th>销量</th><td>10</td><td>20</td><td>30</td></tr>
+    </table>
+    <table data-chart="title:横向条形;xTitle:销量;yTitle:月份;dataFormat:1;chartType:3">
+        <tr><th>月份</th><th>一月</th><th>二月</th><th>三月</th></tr>
+        <tr><th>销量</th><td>10</td><td>20</td><td>30</td></tr>
+    </table>
+    <table data-chart="title:占比;tip:占比;dataFormat:1;chartType:5">
+        <tr><th>类别</th><th>甲</th><th>乙</th><th>丙</th></tr>
+        <tr><th>占比</th><td>20</td><td>30</td><td>50</td></tr>
+    </table>
+</div>
+
+<pre id="smoke-result">PENDING</pre>
+
+<script src="/assets/ueditor.parse.min.js"></script>
+<script>
+    try {
+        uParse('#content', { rootPath: '/assets/' });
+    } catch (e) {
+        document.getElementById('smoke-result').textContent = 'UPARSE_ERR:' + e.message;
+    }
+
+    //ECharts 与 chart.config.js 为异步加载，固定延时后一次性读取各实例的 option
+    setTimeout(function () {
+        try {
+            if (typeof echarts !== 'object') {
+                document.getElementById('smoke-result').textContent = 'NO_ECHARTS';
+                return;
+            }
+            var containers = document.querySelectorAll('.edui-chart-container');
+            var charts = [];
+            for (var i = 0; i < containers.length; i++) {
+                var inst = echarts.getInstanceByDom(containers[i]);
+                if (!inst) { charts.push({ instance: false }); continue; }
+                var o = inst.getOption();
+                var s0 = (o.series && o.series[0]) || {};
+                var yAxis0 = (o.yAxis && o.yAxis[0]) || {};
+                //饼图额外量一次扇区张角：数据形状不对时 ECharts 不报错，只是画不出角度，
+                //只断言 series 存在/有数据点会漏掉（曾漏过一次）
+                var pieSweep = null;
+                if (s0.type === 'pie' && inst.getZr) {
+                    var list = inst.getZr().storage.getDisplayList(), secs = [];
+                    for (var k = 0; k < list.length; k++) {
+                        if (list[k].type === 'sector') secs.push(list[k]);
+                    }
+                    var total = 0, bad = false;
+                    for (var k = 0; k < secs.length; k++) {
+                        var a = secs[k].shape.startAngle, b = secs[k].shape.endAngle;
+                        if (typeof a !== 'number' || isNaN(a) || typeof b !== 'number' || isNaN(b)) { bad = true; break; }
+                        total += (b - a);
+                    }
+                    pieSweep = bad || !secs.length ? -1 : Math.round(total * 180 / Math.PI);
+                }
+                charts.push({
+                    instance: true,
+                    seriesCount: o.series ? o.series.length : 0,
+                    s0Type: s0.type || null,
+                    s0DataLen: (s0.data && s0.data.length) || 0,
+                    s0HasAreaStyle: !!s0.areaStyle,
+                    s0SelectedMode: s0.selectedMode || null,
+                    yAxisType: yAxis0.type || null,
+                    yAxisHasData: !!(yAxis0.data && yAxis0.data.length),
+                    pieSweep: pieSweep
+                });
+            }
+            document.getElementById('smoke-result').textContent = 'RESULT:' + JSON.stringify({
+                echarts: true,
+                containers: containers.length,
+                residualTables: document.querySelectorAll('table[data-chart]').length,
+                charts: charts
+            });
+            document.title = 'DONE';
+        } catch (e) {
+            document.getElementById('smoke-result').textContent = 'FINAL_ERR:' + e.message;
+        }
+    }, 2500);
+</script>
+</body>
+</html>

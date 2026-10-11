@@ -413,7 +413,12 @@ function getSeriesForPieChart () {
         var title = tableData[ 0 ][ j ],
             val = tableData[ 1 ][ j ];
 
-        series.data.push( [ title, val ] );
+        //ECharts 的饼图只认 {name, value}：写成 [name, value] 数组会被当成
+        //value=name（字符串），角度算不出来，整块饼图渲染为空
+        series.data.push( {
+            name: title,
+            value: val
+        } );
 
     }
 

@@ -35,11 +35,14 @@ const FIXTURES = [
 ];
 
 // Expectations per chart, matched positionally to the fixture tables.
+// pieSweep guards the pie's data shape: ECharts silently renders nothing when
+// pie data is [name, value] instead of {name, value}, and the option still
+// looks well-formed, so type/data-length assertions alone miss it.
 const EXPECTED = [
     { label: 'line (chartType 0)', type: 'line' },
     { label: 'area (chartType 2)', type: 'line', areaStyle: true },
     { label: 'bar horizontal (chartType 3)', type: 'bar', yAxisType: 'category', yAxisHasData: true },
-    { label: 'pie (chartType 5)', type: 'pie', selectedMode: 'single' },
+    { label: 'pie (chartType 5)', type: 'pie', selectedMode: 'single', pieSweep: true },
 ];
 
 const MIME = {
@@ -187,6 +190,9 @@ function assertFixture(dom, requests) {
         if (exp.yAxisType && c.yAxisType !== exp.yAxisType) errors.push(`${where}: expected yAxis type ${exp.yAxisType}, got ${c.yAxisType}`);
         if (exp.yAxisHasData && !c.yAxisHasData) errors.push(`${where}: category axis has no category names`);
         if (exp.selectedMode && c.s0SelectedMode !== exp.selectedMode) errors.push(`${where}: expected selectedMode ${exp.selectedMode}, got ${c.s0SelectedMode}`);
+        // A full pie sweeps 360°; 0/NaN/-1 means the sectors were never laid out
+        // (e.g. pie data given as [name, value] instead of {name, value}).
+        if (exp.pieSweep && !(c.pieSweep >= 350)) errors.push(`${where}: pie drew no sectors (sweep=${c.pieSweep}°)`);
     });
 
     return errors;

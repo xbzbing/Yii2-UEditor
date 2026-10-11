@@ -57,6 +57,22 @@
                 var o = inst.getOption();
                 var s0 = (o.series && o.series[0]) || {};
                 var yAxis0 = (o.yAxis && o.yAxis[0]) || {};
+                //饼图额外量一次扇区张角：数据形状不对时 ECharts 不报错，只是画不出角度，
+                //只断言 series 存在/有数据点会漏掉（曾漏过一次）
+                var pieSweep = null;
+                if (s0.type === 'pie' && inst.getZr) {
+                    var list = inst.getZr().storage.getDisplayList(), secs = [];
+                    for (var k = 0; k < list.length; k++) {
+                        if (list[k].type === 'sector') secs.push(list[k]);
+                    }
+                    var total = 0, bad = false;
+                    for (var k = 0; k < secs.length; k++) {
+                        var a = secs[k].shape.startAngle, b = secs[k].shape.endAngle;
+                        if (typeof a !== 'number' || isNaN(a) || typeof b !== 'number' || isNaN(b)) { bad = true; break; }
+                        total += (b - a);
+                    }
+                    pieSweep = bad || !secs.length ? -1 : Math.round(total * 180 / Math.PI);
+                }
                 charts.push({
                     instance: true,
                     seriesCount: o.series ? o.series.length : 0,
@@ -65,7 +81,8 @@
                     s0HasAreaStyle: !!s0.areaStyle,
                     s0SelectedMode: s0.selectedMode || null,
                     yAxisType: yAxis0.type || null,
-                    yAxisHasData: !!(yAxis0.data && yAxis0.data.length)
+                    yAxisHasData: !!(yAxis0.data && yAxis0.data.length),
+                    pieSweep: pieSweep
                 });
             }
             document.getElementById('smoke-result').textContent = 'RESULT:' + JSON.stringify({

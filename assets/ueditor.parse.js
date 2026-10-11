@@ -821,7 +821,12 @@ UE.parse.register('charts',function( utils ){
 
             for ( var i = 1, len = data[ 0 ].length; i < len; i++ ) {
 
-                curData.push( [ data[ 0 ][ i ], data[ 1 ][ i ] | 0 ] );
+                //ECharts 的饼图只认 {name, value}：写成 [name, value] 数组会被当成
+                //value=name（字符串），角度算不出来，整块饼图渲染为空
+                curData.push( {
+                    name: data[ 0 ][ i ],
+                    value: data[ 1 ][ i ] | 0
+                } );
 
             }
 

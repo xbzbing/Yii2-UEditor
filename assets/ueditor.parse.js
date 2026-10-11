@@ -681,7 +681,8 @@ UE.parse.register('charts',function( utils ){
 
         var config = null,
             chartConfig = null,
-            container = null;
+            container = null,
+            instances = [];
 
         for ( var i = 0, len = sources.length; i < len; i++ ) {
 
@@ -691,78 +692,58 @@ UE.parse.register('charts',function( utils ){
 
             container = createContainer( config.table );
 
-            renderChart( container, typeConfig[ config.meta.chartType ], chartConfig );
+            instances.push( renderChart( container, typeConfig[ config.meta.chartType ], chartConfig ) );
 
         }
 
+        bindResize( instances );
+
+    }
+
+    //ECharts 不会自动跟随窗口尺寸变化，需显式 resize（对话框侧同理，见 charts.js）
+    function bindResize ( instances ) {
+
+        if ( !instances.length || !window.addEventListener ) {
+            return;
+        }
+
+        var resizeTimer = null;
+
+        window.addEventListener( 'resize', function () {
+
+            if ( resizeTimer ) {
+                window.clearTimeout( resizeTimer );
+            }
+
+            resizeTimer = window.setTimeout( function () {
+
+                resizeTimer = null;
+
+                for ( var i = 0, chart; chart = instances[ i ]; i++ ) {
+                    chart.resize();
+                }
+
+            }, 200 );
+
+        }, false );
 
     }
 
     /**
      * 渲染图表
      * @param container 图表容器节点对象
-     * @param typeConfig 图表类型配置（取自 chart.config.js，含 seriesType）
+     * @param typeItem 图表类型配置（取自 chart.config.js，含 seriesType）
      * @param config 图表通用配置
+     * @return ECharts 实例
      * */
-    function renderChart ( container, typeConfig, config ) {
+    function renderChart ( container, typeItem, config ) {
 
-        var series = [],
-            i, cur;
+        //option 结构由 chart.config.js 的共享函数 buildChartOption 产出，与对话框预览一致
+        var chart = echarts.init( container );
 
-        for ( i = 0; cur = config.series[ i ]; i++ ) {
+        chart.setOption( buildChartOption( typeItem, config ) );
 
-            //ECharts 要求每条 series 都显式携带 type
-            //此处不用 jQuery 的 $.extend：parse 侧的图表渲染已不再加载 jQuery
-            series.push( utils.extend( {}, cur, {
-                type: typeConfig.seriesType
-            } ) );
-
-        }
-
-        //ECharts 无 Highcharts 的 credits/exporting 概念，无需禁用项
-        echarts.init( container ).setOption( {
-            title: {
-                text: config.title || '',
-                subtext: config.subTitle || ''
-            },
-            tooltip: {
-                trigger: 'item',
-                formatter: function ( params ) {
-
-                    var suffix = config.suffix || '',
-                        value = params.value instanceof Array
-                            ? params.value[ 1 ]
-                            : params.value;
-
-                    return params.name + ': ' + value + suffix;
-
-                }
-            },
-            legend: config.series.length > 0 ? {
-                orient: 'vertical',
-                right: 0,
-                top: 'middle',
-                borderWidth: 1
-            } : false,
-            xAxis: config.categories ? {
-                //条形图为横向，x 轴为数值轴（类型已由 typeConfig.xAxis 指定）
-                type: typeConfig.xAxis ? typeConfig.xAxis.type : 'category',
-                name: config.xTitle || '',
-                data: typeConfig.xAxis ? undefined : config.categories
-            } : undefined,
-            yAxis: config.categories ? {
-                type: typeConfig.yAxis ? typeConfig.yAxis.type : 'value',
-                name: config.yTitle || ''
-            } : undefined,
-            grid: {
-                //为轴标题留出空间，否则会与坐标轴标签重叠
-                top: 40,
-                left: 10,
-                right: 90,
-                bottom: 30
-            },
-            series: series
-        } );
+        return chart;
 
     }
 

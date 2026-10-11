@@ -50,8 +50,14 @@ var typeConfig = [
             selectedMode: 'single',
             label: {
                 color: '#000000',
+                //加粗类目名用 ECharts 富文本标记：canvas label 不解析 HTML，直接写 <b> 会被当字面量画出
+                rich: {
+                    b: {
+                        fontWeight: 'bold'
+                    }
+                },
                 formatter: function (params) {
-                    return '<b>' + params.name + '</b>: ' +
+                    return '{b|' + params.name + '}: ' +
                         (Math.round(params.percent * 100) / 100) + ' %';
                 }
             }
@@ -67,9 +73,22 @@ var typeConfig = [
  *
  * @param typeItem typeConfig 中的某一项，含 seriesType，可选 series / xAxis / yAxis。
  * @param data     已归一的数据：{ series, categories, title, subTitle, xTitle, yTitle, suffix }。
- * @param extend   浅合并函数（对话框传 $.extend，前台传 utils.extend），签名均为 (target, ...sources)。
  */
-function buildChartOption ( typeItem, data, extend ) {
+function buildChartOption ( typeItem, data ) {
+
+    //自带浅合并，避免依赖 $.extend / utils.extend（后者的 this 绑定在跨文件传递时会丢失）
+    function assign () {
+        var target = {};
+        for ( var i = 0; i < arguments.length; i++ ) {
+            var source = arguments[ i ];
+            for ( var key in source ) {
+                if ( source.hasOwnProperty( key ) ) {
+                    target[ key ] = source[ key ];
+                }
+            }
+        }
+        return target;
+    }
 
     var series = [],
         i, cur;
@@ -77,7 +96,7 @@ function buildChartOption ( typeItem, data, extend ) {
     for ( i = 0; cur = data.series[ i ]; i++ ) {
 
         //ECharts 要求每条 series 都显式携带 type；typeItem.series 承载该类型的专属默认值
-        series.push( extend( {
+        series.push( assign( {
             type: typeItem.seriesType
         }, typeItem.series || {}, cur ) );
 
@@ -85,6 +104,8 @@ function buildChartOption ( typeItem, data, extend ) {
 
     return {
         //ECharts 无 Highcharts 的 credits/exporting 概念，无需禁用项
+        //关闭入场动画：对话框里每次改数据都会整体重建，动画会反复重放；展示页也无需入场动效
+        animation: false,
         title: {
             text: data.title || '',
             subtext: data.subTitle || ''
@@ -103,7 +124,7 @@ function buildChartOption ( typeItem, data, extend ) {
 
             }
         },
-        legend: ( data.title || data.subTitle || data.suffix ) ? {
+        legend: ( data.series && data.series.length > 0 ) ? {
             orient: 'vertical',
             right: 0,
             top: 'middle',
@@ -117,7 +138,9 @@ function buildChartOption ( typeItem, data, extend ) {
         } : undefined,
         yAxis: data.categories ? {
             type: typeItem.yAxis ? typeItem.yAxis.type : 'value',
-            name: data.yTitle || ''
+            name: data.yTitle || '',
+            //类目轴（横向条形图的 y 轴）必须显式携带类目名，否则 ECharts 用序列下标 0/1/2
+            data: typeItem.yAxis ? data.categories : undefined
         } : undefined,
         grid: {
             //为轴标题留出空间，否则会与坐标轴标签重叠

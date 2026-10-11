@@ -221,13 +221,13 @@ function renderCharts () {
  * 组装 ECharts option。
  *
  * 实际结构由 chart.config.js 的共享函数 buildChartOption 产出，对话框预览与前台渲染
- * （ueditor.parse.js）共用同一份实现，此处只负责挑选当前图表类型并传入对话框侧的 $.extend。
+ * （ueditor.parse.js）共用同一份实现，此处只负责挑选当前图表类型。
  *
  * @param data collectData() 的返回值
  */
 function buildOption ( data ) {
 
-    return buildChartOption( chartsConfig[ currentChartType ], data, $.extend );
+    return buildChartOption( chartsConfig[ currentChartType ], data );
 
 }
 

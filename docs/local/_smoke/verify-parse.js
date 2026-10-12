@@ -128,7 +128,16 @@ function renderFixture(port, fixture) {
                     process.stderr.write(`[debug] via=${via} reqs=${requests.length} bytes=${dom.length} RESULT=${/RESULT:/.test(dom)}\n`);
                 }
                 server.close();
-                fs.rmSync(workDir, { recursive: true, force: true });
+                // Best-effort temp cleanup. Chrome is SIGKILLed just above and its
+                // helper processes may still be writing into the profile dir, so
+                // removing it can race with ENOTEMPTY on Linux. Cleanup must never
+                // fail the smoke (and must not throw out of this callback, which
+                // would crash the runner instead of reporting a result).
+                try {
+                    fs.rmSync(workDir, { recursive: true, force: true });
+                } catch (e) {
+                    // leave it to the OS temp reaper
+                }
                 fs.writeFileSync(path.join(os.tmpdir(), 'ueditor-smoke-last-dom.html'), dom);
                 resolve({ dom, requests });
             };

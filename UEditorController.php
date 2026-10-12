@@ -523,7 +523,10 @@ class UEditorController extends Controller
                 if (is_dir($path2)) {
                     $this->getFiles($path2, $allowFiles, $files);
                 } else {
-                    if ($this->action->id == 'list-image') {
+                    //开了缩略图时，图片管理框只列缩略图——体积小、加载不卡；
+                    //插入时由前端的 beforeInsertImage 监听去掉 .thumbnail 还原成原图。
+                    //没开缩略图则列全部原图，否则管理框里会什么都看不到。
+                    if ($this->action->id == 'list-image' && $this->thumbnail) {
                         $pat = "/\.thumbnail\.(" . $allowFiles . ")$/i";
                     } else {
                         $pat = "/\.(" . $allowFiles . ")$/i";

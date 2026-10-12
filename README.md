@@ -161,6 +161,35 @@ class EditorController extends crazydb\ueditor\UEditorController
 
 更多配置可以查看 `UEditorController`的 public 属性。
 
+### 把上传文件存到 web 根之外（可选）
+
+默认情况下上传文件保存在 `@webroot` 下，URL 前缀取自 `@web`。若希望把文件放到 web 根之外的
+目录（例如单独挂载的静态资源盘），配置 `basePath` 与 `baseUrl`：
+
+```php
+'controllerMap' => [
+    'ueditor' => [
+        'class'    => 'crazydb\ueditor\UEditorController',
+        // 保存根目录，支持 @别名；会解析为真实路径
+        'basePath' => '@app/uploads',
+        // 该目录对外访问的 URL 前缀（需由 Web 服务器把它映射出去）
+        'baseUrl'  => '/uploads',
+    ],
+],
+```
+
+`basePath` 与 `baseUrl` 都是 public 属性，也可在继承 `UEditorController` 时直接声明。两者必须成对出现——
+只配 `basePath` 而漏掉 `baseUrl` 时，初始化会抛 `InvalidConfigException`，因为此时 URL 前缀无法再自动推导。
+
+```
+# nginx 侧把 /uploads 映射到自定义目录
+location /uploads/ {
+    alias /path/to/app/uploads/;
+}
+```
+
+不配置时行为与之前完全一致（`@webroot` + `@web`）。
+
 
 ### 在模板中使用
 

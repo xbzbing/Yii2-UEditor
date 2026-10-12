@@ -10,6 +10,7 @@
 namespace crazydb\ueditor;
 
 use yii;
+use yii\base\InvalidConfigException;
 use yii\imagine\Image;
 use yii\web\Controller;
 
@@ -77,7 +78,25 @@ class UEditorController extends Controller
     public $defaultAction = 'index';
 
     /**
-     * Web根目录
+     * 上传文件的保存根目录，默认为网站根目录 `@webroot`。
+     *
+     * 配置它可以把上传文件存到 web 根之外（例如单独挂载的静态资源盘）。
+     * 此时必须同时配置 {@see $baseUrl}，否则 URL 无法正确拼出。
+     * @var string
+     */
+    public $basePath;
+
+    /**
+     * `$basePath` 对应的 URL 前缀，默认为 `@web`。
+     *
+     * 仅当把文件存到 `@webroot` 之外时才需要显式配置，例如 `$basePath = '@app/uploads'`
+     * 且该目录通过 `/uploads` 对外提供访问时，设为 `/uploads`。
+     * @var string
+     */
+    public $baseUrl;
+
+    /**
+     * @deprecated 请改用 {@see $basePath}。保留以便既有子类覆写 `$webroot` 时仍能生效。
      * @var string
      */
     protected $webroot;
@@ -115,7 +134,29 @@ class UEditorController extends Controller
             'fileManagerListPath' => '/upload/file/',
         ];
         $this->config = $this->config + $default + $CONFIG;
-        $this->webroot = Yii::getAlias('@webroot');
+
+        //保存根目录：优先取配置的 basePath；未配置时回退到子类覆写的 $webroot，再回退到 @webroot
+        if (empty($this->basePath)) {
+            $this->basePath = !empty($this->webroot) ? $this->webroot : Yii::getAlias('@webroot');
+        }
+        //必须在这里把别名解析成真实路径：下游（Uploader 的 rootPath、Image、文件列表）
+        //都是直接拼字符串，不会自己解析 @xxx
+        $this->basePath = Yii::getAlias($this->basePath);
+        //同步旧属性，供仍读取 $webroot 的既有子类使用
+        $this->webroot = $this->basePath;
+
+        //URL 前缀：默认取 @web（Yii2 的 web 应用在 bootstrap 时由 request->baseUrl 派生）。
+        //@web 未定义时回退到当前请求的 baseUrl，与改动前的行为一致。
+        $baseUrlConfigured = !empty($this->baseUrl);
+        if (!$baseUrlConfigured) {
+            $this->baseUrl = Yii::getAlias('@web', false) ?: Yii::$app->request->baseUrl;
+        }
+
+        //把文件存到 @webroot 之外时，URL 前缀无法再自动推导，必须显式给出
+        if ($this->basePath !== Yii::getAlias('@webroot') && !$baseUrlConfigured) {
+            throw new InvalidConfigException('配置了 basePath 时必须同时配置 baseUrl，否则无法生成可访问的 URL。');
+        }
+
         if (!is_array($this->thumbnail))
             $this->thumbnail = false;
     }
@@ -248,7 +289,7 @@ class UEditorController extends Controller
             'maxSize' => $this->config['catcherMaxSize'],
             'allowFiles' => $this->config['catcherAllowFiles'],
             'oriName' => 'remote.png',
-            'rootPath' => $this->webroot
+            'rootPath' => $this->basePath
         ];
         $fieldName = $this->config['catcherFieldName'];
         /* 抓取远程图片 */
@@ -287,7 +328,7 @@ class UEditorController extends Controller
     protected function upload($fieldName, $config, $base64 = 'upload')
     {
         //让 Uploader 与控制器使用同一个 web 根目录，避免子类覆写 webroot 后保存路径不一致
-        $config['rootPath'] = $this->webroot;
+        $config['rootPath'] = $this->basePath;
         $up = new Uploader($fieldName, $config, $base64);
 
         if ($this->allowIntranet)
@@ -295,9 +336,9 @@ class UEditorController extends Controller
 
         $info = $up->getFileInfo();
         if (($this->thumbnail or $this->zoom or $this->watermark) && $info['state'] == 'SUCCESS' && in_array($info['type'], ['.png', '.jpg', '.bmp', '.gif'])) {
-            $info['thumbnail'] = Yii::$app->request->baseUrl . $this->imageHandle($info['url']);
+            $info['thumbnail'] = $this->baseUrl . $this->imageHandle($info['url']);
         }
-        $info['url'] = Yii::$app->request->baseUrl . $info['url'];
+        $info['url'] = $this->baseUrl . $info['url'];
         $info['original'] = htmlspecialchars($info['original']);
         $info['width'] = $info['height'] = 500;
         return $info;
@@ -318,24 +359,24 @@ class UEditorController extends Controller
         if ($this->thumbnail && !empty($this->thumbnail['height']) && !empty($this->thumbnail['width'])) {
             $file_path = pathinfo($file);
             $thumbnailFile = $file_path['dirname'] . '/' . $file_path['filename'] . '.thumbnail.' . $file_path['extension'];
-            Image::thumbnail($this->webroot . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
-                ->save($this->webroot . $thumbnailFile);
+            Image::thumbnail($this->basePath . $file, intval($this->thumbnail['width']), intval($this->thumbnail['height']))
+                ->save($this->basePath . $thumbnailFile);
         }
         //再处理缩放，默认不缩放
         //...缩放效果非常差劲-，-
         if (isset($this->zoom['height']) && isset($this->zoom['width'])) {
-            $size = $this->getSize($this->webroot . $file);
+            $size = $this->getSize($this->basePath . $file);
             if ($size && $size[0] > 0 && $size[1] > 0) {
                 $ratio = min([$this->zoom['height'] / $size[0], $this->zoom['width'] / $size[1], 1]);
-                Image::thumbnail($this->webroot . $file, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
-                    ->save($this->webroot . $file);
+                Image::thumbnail($this->basePath . $file, ceil($size[0] * $ratio), ceil($size[1] * $ratio))
+                    ->save($this->basePath . $file);
             }
         }
         //最后生成水印
         if (isset($this->watermark['path']) && file_exists($this->watermark['path'])) {
             if (!isset($this->watermark['position']) or $this->watermark['position'] > 9 or $this->watermark['position'] < 0 or !is_numeric($this->watermark['position']))
                 $this->watermark['position'] = 9;
-            $size = $this->getSize($this->webroot . $file);
+            $size = $this->getSize($this->basePath . $file);
             $waterSize = $this->getSize($this->watermark['path']);
             if ($size[0] > $waterSize[0] and $size[1] > $waterSize[1]) {
                 $halfX = $size[0] / 2;
@@ -380,8 +421,8 @@ class UEditorController extends Controller
                         $x = $size[0] - $waterSize[0];
                         $y = $size[1] - $waterSize[1];
                 }
-                Image::watermark($this->webroot . $file, $this->watermark['path'], [$x, $y])
-                    ->save($this->webroot . $file);
+                Image::watermark($this->basePath . $file, $this->watermark['path'], [$x, $y])
+                    ->save($this->basePath . $file);
             }
         }
 
@@ -437,7 +478,7 @@ class UEditorController extends Controller
         $end = $start + $size;
 
         /* 获取文件列表 */
-        $path = $this->webroot . (substr($path, 0, 1) == '/' ? '' : '/') . $path;
+        $path = $this->basePath . (substr($path, 0, 1) == '/' ? '' : '/') . $path;
         $files = $this->getFiles($path, $allowFiles);
         if (!count($files)) {
             $result = [
@@ -476,8 +517,6 @@ class UEditorController extends Controller
         if (in_array(basename($path), $this->ignoreDir)) return null;
         if (substr($path, strlen($path) - 1) != '/') $path .= '/';
         $handle = opendir($path);
-        //baseUrl用于兼容使用alias的二级目录部署方式
-        $baseUrl = Yii::$app->request->baseUrl;
         while (false !== ($file = readdir($handle))) {
             if ($file != '.' && $file != '..') {
                 $path2 = $path . $file;
@@ -491,7 +530,8 @@ class UEditorController extends Controller
                     }
                     if (preg_match($pat, $file)) {
                         $files[] = [
-                            'url' => $baseUrl . substr($path2, strlen($this->webroot)),
+                            //baseUrl 用于兼容使用 alias 的二级目录部署方式
+                            'url' => $this->baseUrl . substr($path2, strlen($this->basePath)),
                             'mtime' => filemtime($path2)
                         ];
                     }

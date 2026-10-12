@@ -234,6 +234,37 @@ ECharts 选用的是官方 `common` 构建而非更小的 `simple` 构建。`sim
 - 数值轴的 0 基线参考线不再绘制（Highcharts 的 `plotLines` 在 ECharts 中无对应项）；
 - 不再显示 Highcharts 的右下角 Credits 链接，也不再提供导出按钮（原集成中二者本就被禁用）。
 
+#### 图表引擎加载方式（可选）
+
+默认加载扩展自带的 `echarts.common.min.js`（约 610 KB），离线可用、零配置。
+若宿主项目已经用到 ECharts，或希望改用 CDN，可通过编辑器配置项 `chartEchartsMode` 调整
+**图表对话框**内的加载方式：
+
+```php
+<?= crazydb\ueditor\UEditor::widget([
+    'name'   => 'content',
+    'config' => [
+        // 'local'（默认）加载扩展自带文件
+        // 'reuse'         复用宿主页面已存在的 window.echarts，不再加载
+        // 其它值          视为 URL，从该 CDN/自定义地址加载
+        'chartEchartsMode' => 'https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.common.min.js',
+    ],
+]) ?>
+```
+
+- `reuse` 要求宿主的 ECharts 与对话框同源可访问；跨域或页面上没有 `window.echarts` 时自动退回 `local`。
+- 选 CDN/自定义构建时请自行保证其注册了 Title、Tooltip、Legend 组件与 line/bar/pie 系列，否则图表会静默缺失这些部分（这也是扩展自带 `common` 而非 `simple` 构建的原因）。
+
+**前台渲染**（`uParse`）本来就优先复用页面上已有的 `window.echarts`；要改用 CDN，给 `uParse` 传
+`chartEchartsUrl`：
+
+```js
+uParse('#content', {
+    rootPath: '/path/to/assets/',
+    chartEchartsUrl: 'https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.common.min.js'
+});
+```
+
 ### 目标浏览器
 
 IE9 及以上。不包含 IE8 及以下版本（未逐一实测 IE9/IE10 真机）。

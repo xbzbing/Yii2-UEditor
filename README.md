@@ -35,6 +35,9 @@ Yii2的百度UEditor扩展
   于是**缩略图、图片缩放、水印在 PHP 8 下会静默失效**（抛 `Unable to open image`）。
 - `2.3` 起改用 `imagine/imagine ^1.0`（解析到 1.5.x），其 GD 驱动同时兼容 `GdImage` 与 resource，
   PHP 7.4 与 PHP 8 均可正常工作。`^2.3` 本身对 PHP 7.4 无额外要求（`imagine/imagine 1.5.x` 声明 `php >=7.1`）。
+- **从 1.6.x 升级时**：若项目的 `composer.lock` 已把 `yiisoft/yii2-imagine` 锁在 `2.1.x`，仅更新本扩展不会自动抬升该依赖，
+  需显式执行 `composer update yiisoft/yii2-imagine -W`（`-W` 允许连带更新 `imagine/imagine`）。
+  否则缩略图、图片缩放、水印在 PHP 8 下仍会静默失效。
 
 安装
 ------------

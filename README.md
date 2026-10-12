@@ -21,12 +21,20 @@ Yii2的百度UEditor扩展
 |---|---|---|
 | PHP | `>=7.4` | 与 Yii2 2.0.55 起的要求一致 |
 | yiisoft/yii2 | `~2.0.14` | 扩展仅使用 `AssetBundle`、`InputWidget`、`Controller` 等全系稳定的 API |
-| yiisoft/yii2-imagine | `~2.1.0` | 缩略图与水印功能所需 |
+| yiisoft/yii2-imagine | `^2.3` | 缩略图与水印功能所需（见下方说明） |
 
 关于 Yii2 版本的两点说明：
 
 - 扩展只用到 2.0 全系稳定的 API，因此约束的下界是 `2.0.14`。`~2.0.14` 等价于 `>=2.0.14 <2.1.0`；2.1 从未发布，实际上等同于不设上界。
 - 不过在 Composer 2.10 及以上版本中，安全策略（`audit.block-insecure`，默认开启）会拦截存在已知漏洞的版本。Yii2 2.0.54 及以下受 CVE-2026-39850（本地文件包含）影响，因此**新装时实际解析到的版本不会低于 2.0.55**。这是 Composer 的行为，与本扩展的版本约束无关。若需安装更早的 Yii2，请在项目根包中自行关闭该策略，并自行评估安全风险。
+
+关于 `yiisoft/yii2-imagine` 的说明：
+
+- 要求 `^2.3` 是因为更早的版本锁定了 `imagine/imagine ~0.7.1`，而该版本的 GD 驱动用 `is_resource()`
+  判断 `imagecreatefromstring()` 的返回值。PHP 8 起该函数返回 `GdImage` 对象而非 resource，
+  于是**缩略图、图片缩放、水印在 PHP 8 下会静默失效**（抛 `Unable to open image`）。
+- `2.3` 起改用 `imagine/imagine ^1.0`（解析到 1.5.x），其 GD 驱动同时兼容 `GdImage` 与 resource，
+  PHP 7.4 与 PHP 8 均可正常工作。`^2.3` 本身对 PHP 7.4 无额外要求（`imagine/imagine 1.5.x` 声明 `php >=7.1`）。
 
 安装
 ------------
@@ -151,13 +159,14 @@ class EditorController extends crazydb\ueditor\UEditorController
 
 后端配置参考官网[后端配置说明](http://fex-team.github.io/ueditor/#server-config "后端配置")。
 
-扩展默认生成 `200x200` 的缩略图，缩略图大小可以通过 `thumbnail` 来控制。
+缩略图默认**不生成**。设置 `thumbnail` 后，上传图片时会额外生成一份缩略图，
+图片管理框将只列出缩略图（体积小，加载不卡顿），插入时再还原成原图：
 
 ```
     'thumbnail' => ['height' => 200, 'width' => 200]
 ```
 
-如果将 `thumbnail` 设置为 `false`，就不会生成缩略图。
+未设置 `thumbnail`（或设为 `false`）时不生成缩略图，图片管理框列出全部文件。
 
 更多配置可以查看 `UEditorController`的 public 属性。
 

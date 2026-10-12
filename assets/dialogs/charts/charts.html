@@ -82,8 +82,43 @@
             </div>
         </div>
         <script src="../../third-party/jquery-3.7.1.min.js"></script>
-        <script src="../../third-party/echarts/echarts.common.min.js"></script>
         <script src="chart.config.js"></script>
+        <!--
+            ECharts 的加载方式由编辑器配置 chartEchartsMode 决定（默认 local）：
+              local  加载扩展自带的 echarts.common.min.js，离线可用
+              reuse  复用宿主页面已加载的 window.echarts
+              其它值  视为 URL，从该 CDN/自定义地址加载
+            三种模式地址不同、且 reuse 不应发起请求，故不能用静态 <script src>。
+            echarts 只需在 window.onload（charts.js 的入口）之前就绪，这里同步完成，
+            再加载 charts.js。
+        -->
+        <script>
+            (function () {
+                var mode = ( window.editor && editor.options.chartEchartsMode ) || 'local';
+
+                if ( mode === 'reuse' ) {
+                    //复用宿主页面的 echarts 全局（实例仍绑定本窗口自己的 DOM 容器）。
+                    //跨域时访问 parent.echarts 会抛错，退回 local。
+                    if ( !window.echarts ) {
+                        try {
+                            window.echarts = window.parent && window.parent.echarts;
+                        } catch ( e ) {
+                            window.echarts = null;
+                        }
+                    }
+                    if ( window.echarts ) {
+                        return;
+                    }
+                    mode = 'local';
+                }
+
+                var src = ( mode === 'local' )
+                    ? '../../third-party/echarts/echarts.common.min.js'
+                    : mode;
+
+                document.write( '<script src="' + src + '"><\/script>' );
+            })();
+        </script>
         <script src="charts.js"></script>
     </body>
 </html>

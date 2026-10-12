@@ -542,6 +542,9 @@ UE.parse.register('charts',function( utils ){
     utils.cssRule('chartsContainerHeight','.edui-chart-container { height:'+(this.chartContainerHeight||300)+'px}');
     var resourceRoot = this.rootPath,
         containers = this.root,
+        //ECharts 地址：默认用扩展自带的构建；传 chartEchartsUrl 可改用 CDN/自定义地址。
+        //无论哪种，若页面已存在 window.echarts 则直接复用、不再加载。
+        echartsUrl = this.chartEchartsUrl || ( resourceRoot + "/third-party/echarts/echarts.common.min.js" ),
         sources = null;
 
     //不存在指定的根路径， 则直接退出
@@ -642,7 +645,7 @@ UE.parse.register('charts',function( utils ){
         if ( !window.echarts ) {
 
             utils.loadFile(document,{
-                src : resourceRoot + "/third-party/echarts/echarts.common.min.js",
+                src : echartsUrl,
                 tag : "script",
                 type : "text/javascript",
                 defer : "defer"

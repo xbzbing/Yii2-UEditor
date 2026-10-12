@@ -93,6 +93,14 @@ class UEditor extends yii\widgets\InputWidget
         if (empty($this->config['enableAutoSave']))
             $this->config['enableAutoSave'] = false;
 
+        //图表引擎（ECharts）加载方式：
+        //  'local' 加载扩展自带的 echarts.common.min.js（默认，离线可用）
+        //  'reuse' 复用宿主页面已加载的 window.echarts，不再自己加载（省一次 610KB 请求）
+        //  其他值  视为 CDN/自定义地址，按该 URL 加载
+        //仅影响图表对话框；前台渲染（ueditor.parse.js）本来就优先复用 window.echarts。
+        if (empty($this->config['chartEchartsMode']))
+            $this->config['chartEchartsMode'] = 'local';
+
         //扩展默认不直接引入config.js文件，因此需要自定义配置项.
         if (empty($this->config['toolbars'])) {
             //为了避免每次使用都输入乱七八糟的按钮，这里预先定义一些常用的编辑器按钮。
